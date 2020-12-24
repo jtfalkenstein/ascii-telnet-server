@@ -30,6 +30,7 @@ from __future__ import division, print_function
 import pickle
 import re
 from pathlib import Path
+import tempfile
 
 import yaml
 
@@ -208,7 +209,7 @@ class Movie(object):
 
         lines_per_frame = self._frame_height + TimeBar.height  # incl. meta data (time information)
         current_frame = None
-
+        frames = []
         for line_num, line in enumerate(file_handle):
             time_metadata = None
 
@@ -217,10 +218,12 @@ class Movie(object):
 
             if time_metadata is not None:
                 current_frame = Frame(display_time=time_metadata)
-                self.frames.append(current_frame)
+                frames.append(current_frame)
             else:
                 line = self._fix_line(line)
                 current_frame.data.append(line)
+
+        return frames
 
     def _get_yaml_frames(self, file_handle):
         yaml_reader = yaml.parse(file_handle)
@@ -269,5 +272,7 @@ class Movie(object):
             pickle.dump(self.frames, f)
 
     def _get_pickle_path(self, filepath: str) -> Path:
-        path = Path(filepath + '.pkl')
-        return path
+        tempdir = Path(tempfile.gettempdir())
+        file_path = Path(filepath)
+        pickle_path = tempdir / f"{file_path.name}.pkl"
+        return pickle_path
