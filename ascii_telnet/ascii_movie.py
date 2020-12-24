@@ -27,6 +27,11 @@
 
 from __future__ import division, print_function
 
+import re
+
+import yaml
+
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 class Frame(object):
     def __init__(self, display_time=1):
@@ -41,6 +46,15 @@ class Frame(object):
         """
         self.display_time = display_time
         self.data = []  # frame lines
+
+    @property
+    def dimensions(self):
+        height = len(self.data)
+        width = max(
+            len(ansi_escape.sub('', line))
+            for line in self.data
+        )
+        return width, height
 
 
 class TimeBar(object):
@@ -127,16 +141,32 @@ class Movie(object):
         self.frames = []
         self._loaded = False
 
-        self._frame_width = 67
-        self._frame_height = 13
-
         f = Frame()
         f.data.append("No movie yet loaded.")
         self.frames.append(f)
+        self.screen_width = None
+        self.screen_height = None
+        self._frame_width = None
+        self._frame_height = None
+        self.left_margin = None
+        self.top_margin = None
 
+        self.set_screen_dimensions(width, height)
+        self.set_frame_dimensions(67, 13)
+
+    def set_screen_dimensions(self, width, height):
         self.screen_width = width
         self.screen_height = height
 
+    def set_frame_dimensions(self, width, height):
+        self._frame_width = width
+        if width > self.screen_width:
+            self.screen_width = width
+
+        if height + TimeBar.height:
+            self.screen_height = height + TimeBar.height
+
+        self._frame_height = height
         self.left_margin = (self.screen_width - self._frame_width) // 2
         self.top_margin = (self.screen_height - self._frame_height - TimeBar.height) // 2
 
@@ -158,29 +188,60 @@ class Movie(object):
         if self._loaded:
             # we don't want to be loaded twice.
             return False
-        self.frames = []
-        current_frame = None
-        lines_per_frame = self._frame_height + TimeBar.height  # incl. meta data (time information)
 
         with open(filepath) as f:
-            for line_num, line in enumerate(f):
-                time_metadata = None
+            if filepath.endswith('.txt'):
+                self.frames = self._get_text_frames(f)
+            elif filepath.endswith('.yaml'):
+                self.frames = self._get_yaml_frames(f)
 
-                if line_num % lines_per_frame == 0:
-                    time_metadata = int(line.strip())
-
-                if time_metadata is not None:
-                    current_frame = Frame(display_time=time_metadata)
-                    self.frames.append(current_frame)
-                else:
-                    # First strip every white character from the right
-                    # The amount of white space can be variable
-                    line = line.rstrip()
-                    # Second fill line out with blanks so that any previous
-                    # characters are overwritten
-                    line = line.ljust(self._frame_width)
-                    # Third center the frame on the screen
-                    line = line.rjust(self.left_margin + self._frame_width)
-                    current_frame.data.append(line)
         self._loaded = True
         return True
+
+    def _get_text_frames(self, file_handle):
+
+        lines_per_frame = self._frame_height + TimeBar.height  # incl. meta data (time information)
+        current_frame = None
+
+        for line_num, line in enumerate(file_handle):
+            time_metadata = None
+
+            if line_num % lines_per_frame == 0:
+                time_metadata = int(line.strip())
+
+            if time_metadata is not None:
+                current_frame = Frame(display_time=time_metadata)
+                self.frames.append(current_frame)
+            else:
+                line = self._fix_line(line)
+                current_frame.data.append(line)
+
+    def _get_yaml_frames(self, file_handle):
+        yaml_reader = yaml.parse(file_handle)
+        return list(self.generate_frames(yaml_reader))
+
+    def generate_frames(self, yaml_reader):
+        dimensions_evaluated = False
+        for event in yaml_reader:
+            if isinstance(event, yaml.StreamEndEvent):
+                break
+            if isinstance(event, yaml.ScalarEvent):
+                frame_str: str = event.value
+                lines = frame_str.splitlines()
+                frame = Frame()
+                frame.data = lines[:-1]
+                if not dimensions_evaluated:
+                    width, height = frame.dimensions
+                    self.set_frame_dimensions(width, height)
+                    dimensions_evaluated = True
+                yield frame
+
+    def _fix_line(self, line):
+        line = line.rstrip()
+        # Second fill line out with blanks so that any previous
+        # characters are overwritten
+        line = line.ljust(self._frame_width)
+        # Third center the frame on the screen
+        line = line.rjust(self.left_margin + self._frame_width)
+        return line
+

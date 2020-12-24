@@ -62,7 +62,7 @@ def runTcpServer(interface, port, filename):
         port (int): bind to this port
         filename (str): file name of the ASCII movie
     """
-    TelnetRequestHandler.filename = filename
+    TelnetRequestHandler.set_up_handler_global_state(filename)
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
 
@@ -114,7 +114,6 @@ if __name__ == "__main__":
 
     if not (options.filename and os.path.exists(options.filename)):
         parser.exit(1, "Error, file not found! See --help for details.\n")
-
     try:
         if options.tcpserv:
             if options.verbose:
