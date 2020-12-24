@@ -62,7 +62,9 @@ def runTcpServer(interface, port, filename):
         port (int): bind to this port
         filename (str): file name of the ASCII movie
     """
+    print("Loading movie...")
     TelnetRequestHandler.set_up_handler_global_state(filename)
+    print("Launching server!")
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
 
