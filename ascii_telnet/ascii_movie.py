@@ -33,6 +33,7 @@ from pathlib import Path
 import tempfile
 
 import yaml
+import colorama
 
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
@@ -58,6 +59,10 @@ class Frame(object):
             for line in self.data
         )
         return width, height
+
+    def set_background_on_frame(self, background_code):
+        self.data[0] = background_code + self.data[0]
+        self.data[-1] += colorama.Style.RESET_ALL
 
 
 class TimeBar(object):
@@ -217,6 +222,8 @@ class Movie(object):
                 time_metadata = int(line.strip())
 
             if time_metadata is not None:
+                if current_frame:
+                    current_frame.set_background_on_frame(colorama.Back.BLACK)
                 current_frame = Frame(display_time=time_metadata)
                 frames.append(current_frame)
             else:
@@ -239,6 +246,7 @@ class Movie(object):
                 lines = frame_str.splitlines()
                 frame = Frame()
                 frame.data = lines[:-1]
+                frame.set_background_on_frame(colorama.Back.BLACK)
                 if not dimensions_evaluated:
                     width, height = frame.dimensions
                     self.set_frame_dimensions(width, height)
@@ -276,3 +284,4 @@ class Movie(object):
         file_path = Path(filepath)
         pickle_path = tempdir / f"{file_path.name}.pkl"
         return pickle_path
+
