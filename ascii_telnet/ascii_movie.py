@@ -27,13 +27,10 @@
 
 from __future__ import division, print_function
 
-import pickle
 import re
-from pathlib import Path
-import tempfile
 
-import yaml
 import colorama
+import yaml
 
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
@@ -197,15 +194,11 @@ class Movie(object):
             # we don't want to be loaded twice.
             return False
 
-        if self._pickle_exists(filepath):
-            self.frames = self._get_pickle_frames(filepath)
-        else:
-            with open(filepath) as f:
-                if filepath.endswith('.txt'):
-                    self.frames = self._get_text_frames(f)
-                elif filepath.endswith('.yaml'):
-                    self.frames = self._get_yaml_frames(f)
-            self._set_pickle_frames(filepath)
+        with open(filepath) as f:
+            if filepath.endswith('.txt'):
+                self.frames = self._get_text_frames(f)
+            elif filepath.endswith('.yaml'):
+                self.frames = self._get_yaml_frames(f)
 
         self._loaded = True
         return True
@@ -261,27 +254,4 @@ class Movie(object):
         # Third center the frame on the screen
         line = line.rjust(self.left_margin + self._frame_width)
         return line
-
-    def _pickle_exists(self, filepath):
-        path = self._get_pickle_path(filepath)
-        return path.exists()
-
-    def _get_pickle_frames(self, filepath):
-        path = self._get_pickle_path(filepath)
-        with path.open(mode='rb') as f:
-            frames = pickle.load(f)
-        frame1 = frames[0]
-        self.set_frame_dimensions(*frame1.dimensions)
-        return frames
-
-    def _set_pickle_frames(self, filepath):
-        path = self._get_pickle_path(filepath)
-        with path.open(mode='wb') as f:
-            pickle.dump(self.frames, f)
-
-    def _get_pickle_path(self, filepath: str) -> Path:
-        tempdir = Path(tempfile.gettempdir())
-        file_path = Path(filepath)
-        pickle_path = tempdir / f"{file_path.name}.pkl"
-        return pickle_path
 
