@@ -269,4 +269,4 @@ ENV/
 # Rope project settings
 .ropeproject
 node_modules
-create_and_host.sh
+*.sh

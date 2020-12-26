@@ -71,6 +71,11 @@ class Frame(object):
     def frame_seconds(self) -> float:
         return self.display_time / self.DISPLAY_PER_SECONDS
 
+    def __eq__(self, other: 'Frame'):
+        if other is None:
+            return False
+        return self.data == other.data
+
 
 class TimeBar(object):
     height = 1
@@ -210,6 +215,7 @@ class Movie(object):
             elif filepath.endswith('.yaml'):
                 self.frames = self._get_yaml_frames(f)
 
+        self.compress()
         self._loaded = True
         return True
 
@@ -313,6 +319,21 @@ class Movie(object):
             if height > self._frame_height:
                 self.set_frame_dimensions(width, height)
             accumulated_time += frame.frame_seconds
+
+    def compress(self):
+        new_frames = []
+        current_frame = None
+        for index in range(len(self.frames)):
+            this_frame = self.frames[index]
+
+            if this_frame == current_frame:
+                current_frame.display_time += this_frame.display_time
+                continue
+
+            current_frame = this_frame
+            new_frames.append(current_frame)
+
+        self.frames = new_frames
 
 
 def get_loaded_movie(filepath) -> Movie:
