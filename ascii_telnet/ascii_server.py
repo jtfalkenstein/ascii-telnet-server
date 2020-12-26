@@ -63,7 +63,7 @@ class TelnetRequestHandler(StreamRequestHandler):
         visitor = self.prompt_for_name()
         self.prepare_for_screen_size()
         try:
-            send_notification(f"Server has been visited by {visitor} at {self.client_address}!")
+            send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
         except MisconfiguredNotificationError:
             pass
 
