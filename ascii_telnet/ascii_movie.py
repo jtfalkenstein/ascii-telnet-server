@@ -27,6 +27,7 @@
 
 from __future__ import division, print_function
 
+import pickle
 import re
 
 import colorama
@@ -255,3 +256,9 @@ class Movie(object):
         line = line.rjust(self.left_margin + self._frame_width)
         return line
 
+    def to_pickle(self, output_path: str):
+        if not output_path.endswith('.pkl'):
+            output_path += '.pkl'
+        with open(output_path, mode='wb') as f:
+            pickle.dump(self, f)
+        return output_path
