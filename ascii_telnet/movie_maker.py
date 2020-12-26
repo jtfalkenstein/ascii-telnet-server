@@ -17,7 +17,9 @@ REQUIRED_NODE_VERSION = 7
 def make_movie(
     video_path: str,
     processed_movie_path: str,
-    node_executable_path=None
+    node_executable_path: str = None,
+    subtitles_path: str = None,
+    seconds_per_slide: int = 3
 ):
     if not node_executable_path:
         node_executable_path = subprocess.run('which node', shell=True, capture_output=True, check=True)
@@ -33,6 +35,11 @@ def make_movie(
     movie = Movie()
     print("Loading frames into a movie file...")
     movie.load(str(generated_yaml_file))
+
+    if subtitles_path:
+        print("Splicing in subtitles...")
+        movie.splice_in_text(subtitles_path, seconds_per_slide)
+
     print("Pickling move...")
     pickle_path = movie.to_pickle(processed_movie_path)
     print("Pickling complete!")
