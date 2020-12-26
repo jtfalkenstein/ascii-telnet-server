@@ -2,7 +2,6 @@
   "name": "telnet-server",
   "version": "1.0.0",
   "description": "Tool to record and host a ascii-based telnet server",
-  "main": "index.js",
   "directories": {
     "test": "tests"
   },
@@ -25,6 +24,8 @@
   "dependencies": {
     "ascii-video": "^0.1.2"
   },
-  "engines" : { "node" : ">=7" },
-  "engineStrict" : true
+  "engines": {
+    "node": ">=7"
+  },
+  "engineStrict": true
 }
