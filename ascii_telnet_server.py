@@ -41,7 +41,6 @@
   Python3 Update: Ryan Jarvis
 
 """
-from __future__ import division, print_function
 
 import os
 import sys
@@ -50,6 +49,9 @@ from optparse import OptionParser
 from ascii_telnet.ascii_movie import Movie, get_loaded_movie
 from ascii_telnet.ascii_player import VT100Player
 from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
+import click
+
+from ascii_telnet.movie_maker import make_movie
 
 
 def runTcpServer(interface, port, filename):
@@ -86,43 +88,81 @@ def runStdOut(filepath):
     player.play()
 
 
-if __name__ == "__main__":
-    usage = "Usage: %prog [options]"
-    parser = OptionParser(usage=usage)
-    parser.add_option("", "--standalone", dest="tcpserv", action="store_true",
-                      help="Run as stand alone multi threaded TCP server (default)")
-    parser.add_option("", "--stdout", dest="tcpserv", action="store_false",
-                      help="Run with STDIN and STDOUT, for example in XINETD " +
-                           "instead of stand alone TCP server. " +
-                           "Use with python option '-u' for unbuffered " +
-                           "STDIN STDOUT communication")
-    parser.add_option("-f", "--file", dest="filename", metavar="FILE",
-                      help="Text file containing the ASCII movie")
-    parser.add_option("-i", "--interface", dest="interface",
-                      help="Bind to this interface (default '0.0.0.0', all interfaces)",
-                      default="0.0.0.0")
-    parser.add_option("-p", "--port", dest="port", metavar="PORT",
-                      help="Bind to this port (default 23, Telnet)",
-                      default=23, type="int")
-    parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                      help="Verbose (default for TCP server)")
-    parser.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                      help="Quiet! (default for STDIN STDOUT server)")
-    parser.set_defaults(interface="0.0.0.0",
-                        port=23,
-                        tcpserv=True,
-                        verbose=True, )
-    options = parser.parse_args()[0]
+@click.group()
+def cli():
+    pass
 
-    if not (options.filename and os.path.exists(options.filename)):
-        parser.exit(1, "Error, file not found! See --help for details.\n")
+
+@cli.command()
+@click.option(
+    '--stdout',
+    is_flag=True,
+    help=(
+        "Run with STDIN and STDOUT, for example in XINETD " +
+        "instead of stand alone TCP server. " +
+        "Use with python option '-u' for unbuffered " +
+        "STDIN STDOUT communication"
+    )
+)
+@click.option(
+    '-f',
+    '--file',
+    type=click.Path(exists=True),
+    help="File containing the ASCII movie. It can be a .txt, .yaml, or .pkl file"
+)
+@click.option(
+    '-i',
+    '--interface',
+    default='0.0.0.0',
+    help="Bind to this interface (default '0.0.0.0', all interfaces)"
+)
+@click.option(
+    '-p',
+    '--port',
+    default=23,
+    help="Bind to this port (default 23, Telnet)",
+)
+def run(
+    stdout,
+    file,
+    interface,
+    port
+):
     try:
-        if options.tcpserv:
-            if options.verbose:
-                print("Running TCP server on {0}:{1}".format(options.interface, options.port))
-                print("Playing movie {0}".format(options.filename))
-            runTcpServer(options.interface, options.port, options.filename)
+        if stdout:
+            runStdOut(file)
         else:
-            runStdOut(options.filename)
+            print("Running TCP server on {0}:{1}".format(interface, port))
+            print("Playing movie {0}".format(file))
+            runTcpServer(interface, port, file)
+
     except KeyboardInterrupt:
         print("Ascii Player Quit.")
+
+
+@cli.command()
+@click.option(
+    '-i',
+    '--video-file-in',
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-o',
+    '--text-file-out',
+    required=True
+)
+@click.option(
+    '--node-path',
+    type=click.Path(exists=True)
+)
+def make(
+    video_file_in,
+    text_file_out,
+    node_path
+):
+    make_movie(video_file_in, text_file_out, node_path)
+
+
+if __name__ == "__main__":
+    cli()
