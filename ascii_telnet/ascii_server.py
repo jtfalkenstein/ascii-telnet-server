@@ -29,6 +29,7 @@ from __future__ import division, print_function
 import errno
 import os
 import socket
+import time
 
 from ascii_telnet.ascii_movie import Movie
 from ascii_telnet.ascii_player import VT100Player
@@ -57,13 +58,19 @@ class TelnetRequestHandler(StreamRequestHandler):
     @classmethod
     def set_up_handler_global_state(cls, movie: Movie):
         cls.movie = movie
-        os.environ['COLUMNS'] = str(movie.screen_width)
-        os.environ['LINES'] = str(movie.screen_height)
 
     def handle(self):
         visitor = self.prompt_for_name()
+        self.wfile.write(
+            (
+                "\nYou'll probably want to make your window wider. I'll give you a few to do that now. Size it to this:"
+                f"\n{self.movie.screen_width * '-'}"
+            ).encode('ISO-8859-1')
+        )
+        time.sleep(5)
+        self.wfile.write("\nHere we go!\n")
         try:
-            send_notification(f"Server has been visited by {visitor}!")
+            send_notification(f"Server has been visited by {visitor} at {self.client_address}!")
         except MisconfiguredNotificationError:
             pass
 
