@@ -1,5 +1,5 @@
 .gitignore
 .dockerignore
 .travis.yml
-screenshots
+raw_assets
 Dockerfile

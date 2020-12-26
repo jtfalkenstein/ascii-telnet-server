@@ -71,5 +71,5 @@ def _encode_video_to_ascii(video_path: str, node_executable_path: str) -> Path:
         str(output_file)
     ]
 
-    result = subprocess.run(command, check=True)
+    subprocess.run(command, check=True)
     return output_file
