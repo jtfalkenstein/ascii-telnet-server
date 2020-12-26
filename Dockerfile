@@ -16,7 +16,6 @@ WORKDIR /app
 RUN pip install -U pip
 RUN pip install -r requirements.txt
 
+EXPOSE 9001
 
-ENV PORT=23
-
-CMD ["python", "ascii_telnet_server.py", "run", "-p", "$PORT"]
+CMD ["python", "ascii_telnet_server.py", "run", "-p", "9001"]
