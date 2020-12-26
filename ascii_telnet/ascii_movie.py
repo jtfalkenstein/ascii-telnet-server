@@ -331,6 +331,8 @@ class Movie(object):
 
             current_frame = this_frame
             new_frames.append(current_frame)
+        compression_percent = (len(self.frames) - len(new_frames)) / len(self.frames)
+        print(f"Compression ratio achieved! {compression_percent}%")
 
         self.frames = new_frames
 
