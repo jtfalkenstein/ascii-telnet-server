@@ -62,7 +62,7 @@ class TelnetRequestHandler(StreamRequestHandler):
             send_notification("Server has been visited!")
         except MisconfiguredNotificationError:
             pass
-        
+
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
