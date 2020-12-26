@@ -1,8 +1,8 @@
-import json
 import subprocess
-from pathlib import Path
 import tempfile
 import uuid
+from pathlib import Path
+
 from ascii_telnet.ascii_movie import Movie
 
 current_directory = Path(__file__).parent
@@ -14,7 +14,11 @@ temp_dir = Path(tempfile.gettempdir())
 REQUIRED_NODE_VERSION = 7
 
 
-def make_movie(video_path: str, processed_movie_path: str, node_executable_path=None):
+def make_movie(
+    video_path: str,
+    processed_movie_path: str,
+    node_executable_path=None
+):
     if not node_executable_path:
         node_executable_path = subprocess.run('which node', shell=True, capture_output=True, check=True)
     else:
@@ -33,7 +37,6 @@ def make_movie(video_path: str, processed_movie_path: str, node_executable_path=
     pickle_path = movie.to_pickle(processed_movie_path)
     print("Pickling complete!")
     return pickle_path
-
 
 
 def _node_exists_with_right_version(node_executable_path: str):
