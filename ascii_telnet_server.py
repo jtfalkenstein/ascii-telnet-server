@@ -45,6 +45,7 @@
 import os
 import sys
 from optparse import OptionParser
+from pathlib import Path
 
 from ascii_telnet.ascii_movie import Movie, get_loaded_movie
 from ascii_telnet.ascii_player import VT100Player
@@ -53,6 +54,8 @@ import click
 
 from ascii_telnet.movie_maker import make_movie
 
+current_directory = Path(__file__).parent
+default_movie = current_directory / 'movies' / 'movie.pkl'
 
 def runTcpServer(interface, port, filename):
     """
@@ -108,7 +111,8 @@ def cli():
     '-f',
     '--file',
     type=click.Path(exists=True),
-    help="File containing the ASCII movie. It can be a .txt, .yaml, or .pkl file"
+    help="File containing the ASCII movie. It can be a .txt, .yaml, or .pkl file",
+    default=str(default_movie)
 )
 @click.option(
     '-i',
@@ -164,7 +168,7 @@ def run(
 @click.option(
     '--subtitle-seconds',
     type=click.INT,
-    default=4
+    default=5
 )
 def make(
     video_file_in,
