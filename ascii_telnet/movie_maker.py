@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 
 from ascii_telnet.ascii_movie import Movie
+from hashlib import md5
 
 current_directory = Path(__file__).parent
 node_modules_dir = current_directory.parent / 'node_modules'
@@ -31,7 +32,9 @@ def make_movie(
     if not _ascii_video_is_installed():
         raise SystemError("npm install the package.json to ensure ascii-video is installed correctly.")
 
-    generated_yaml_file = _encode_video_to_ascii(video_path, node_executable_path)
+    video_hash = _hash_file(video_path)
+
+    generated_yaml_file = _encode_video_to_ascii(video_path, video_hash, node_executable_path)
     movie = Movie()
     print("Loading frames into a movie file...")
     movie.load(str(generated_yaml_file))
@@ -46,6 +49,20 @@ def make_movie(
     return pickle_path
 
 
+def _hash_file(video_filepath) -> str:
+    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+    md5_hash = md5()
+
+    with open(video_filepath, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            md5_hash.update(data)
+
+    return md5_hash.hexdigest()
+
 def _node_exists_with_right_version(node_executable_path: str):
     node_version = subprocess.run(f'{node_executable_path} --version', shell=True, capture_output=True, encoding='utf-8')
     node_version_str = node_version.stdout
@@ -58,18 +75,20 @@ def _ascii_video_is_installed():
     return ascii_video_package_dir.exists()
 
 
-def _encode_video_to_ascii(video_path: str, node_executable_path: str) -> Path:
+def _encode_video_to_ascii(video_path: str, video_hash: str, node_executable_path: str) -> Path:
     ascii_video_script_path = ascii_video_package_dir / 'main.js'
-    output_file = temp_dir / (str(uuid.uuid4()) + '.yaml')
+    output_file = temp_dir / f'{video_hash}.yaml'
+    if output_file.exists():
+        print("Video has already been transcoded to yaml. Using that file instead.")
+    else:
+        command = [
+            node_executable_path,
+            '--harmony',
+            str(ascii_video_script_path),
+            'create',
+            video_path,
+            str(output_file)
+        ]
 
-    command = [
-        node_executable_path,
-        '--harmony',
-        str(ascii_video_script_path),
-        'create',
-        video_path,
-        str(output_file)
-    ]
-
-    subprocess.run(command, check=True)
+        subprocess.run(command, check=True)
     return output_file
