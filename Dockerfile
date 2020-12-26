@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 23
 
-CMD python ascii_telnet_server.py run
+CMD ["python", "ascii_telnet_server.py", "run"]

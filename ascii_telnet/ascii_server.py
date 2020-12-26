@@ -27,6 +27,7 @@
 from __future__ import division, print_function
 
 import errno
+import os
 import socket
 
 from ascii_telnet.ascii_movie import Movie
@@ -56,16 +57,27 @@ class TelnetRequestHandler(StreamRequestHandler):
     @classmethod
     def set_up_handler_global_state(cls, movie: Movie):
         cls.movie = movie
+        os.environ['COLUMNS'] = str(movie.screen_width)
+        os.environ['LINES'] = str(movie.screen_height)
 
     def handle(self):
+        visitor = self.prompt_for_name()
         try:
-            send_notification("Server has been visited!")
+            send_notification(f"Server has been visited by {visitor}!")
         except MisconfiguredNotificationError:
             pass
 
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
+
+    def prompt_for_name(self) -> str:
+        self.rfile.flush() # Empty it from anything that precedes
+        self.wfile.write("Who dis? ".encode('ISO-8859-1'))
+        visitor_bytes = self.rfile.readline()
+        received_string = visitor_bytes.decode('ISO-8859-1')
+        split_by_hash = received_string.split('#')
+        return split_by_hash[-1].strip()
 
     def draw_frame(self, screen_buffer):
         """
