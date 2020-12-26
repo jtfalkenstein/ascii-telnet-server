@@ -273,10 +273,13 @@ class Movie(object):
         return output_path
 
     def splice_in_text(self, text_file_path: str, seconds_per_slide: int):
-        frame_iterator = iter(self.frames)
-        with open(text_file_path) as f:
-            for line in f:
-                self._splice_line_into_frames(line, frame_iterator, seconds_per_slide)
+        try:
+            frame_iterator = iter(self.frames)
+            with open(text_file_path) as f:
+                for line in f:
+                    self._splice_line_into_frames(line, frame_iterator, seconds_per_slide)
+        except StopIteration:
+            raise ValueError("Subtitles length exceeds movie length")
 
     def _splice_line_into_frames(self, line: str, frame_iterator: Iterator[Frame], seconds_per_slide: int):
         formatted_lines = self._format_spliced_line(line)
@@ -286,10 +289,11 @@ class Movie(object):
         line = line.strip()
         text_width = self._frame_width - 2
         if len(line) > text_width:
-            line = textwrap.wrap(line, width=text_width)
-        lines = line.splitlines()
+            lines = textwrap.wrap(line, width=text_width)
+        else:
+            lines = [line]
         formatted = [
-            f'{colorama.Back.BLACK}{colorama.Fore.WHITE}{line.center(text_width)}{colorama.Style.RESET_ALL}'
+            f'{colorama.Back.BLACK}{colorama.Fore.WHITE}{line.strip().center(text_width)}{colorama.Style.RESET_ALL}'
             for line in lines
         ]
         return formatted

@@ -156,12 +156,24 @@ def run(
     '--node-path',
     type=click.Path(exists=True)
 )
+@click.option(
+    '-s',
+    '--subtitles',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '--subtitle-seconds',
+    type=click.INT,
+    default=4
+)
 def make(
     video_file_in,
     text_file_out,
-    node_path
+    node_path,
+    subtitles,
+    subtitle_seconds
 ):
-    make_movie(video_file_in, text_file_out, node_path)
+    make_movie(video_file_in, text_file_out, node_path, subtitles, subtitle_seconds)
 
 
 if __name__ == "__main__":
