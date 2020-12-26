@@ -53,9 +53,8 @@ class TelnetRequestHandler(StreamRequestHandler):
     movie = None
 
     @classmethod
-    def set_up_handler_global_state(cls, filename):
-        cls.movie = Movie()
-        cls.movie.load(filename)
+    def set_up_handler_global_state(cls, movie: Movie):
+        cls.movie = movie
 
     def handle(self):
         self.player = VT100Player(self.movie)

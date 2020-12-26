@@ -262,3 +262,13 @@ class Movie(object):
         with open(output_path, mode='wb') as f:
             pickle.dump(self, f)
         return output_path
+
+
+def get_loaded_movie(filepath) -> Movie:
+    if filepath.endswith('.pkl'):
+        with open(filepath, mode='rb') as f:
+            return pickle.load(f)
+
+    movie = Movie()
+    movie.load(filepath)
+    return movie

@@ -47,7 +47,7 @@ import os
 import sys
 from optparse import OptionParser
 
-from ascii_telnet.ascii_movie import Movie
+from ascii_telnet.ascii_movie import Movie, get_loaded_movie
 from ascii_telnet.ascii_player import VT100Player
 from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
 
@@ -63,7 +63,8 @@ def runTcpServer(interface, port, filename):
         filename (str): file name of the ASCII movie
     """
     print("Loading movie...")
-    TelnetRequestHandler.set_up_handler_global_state(filename)
+    movie = get_loaded_movie(filename)
+    TelnetRequestHandler.set_up_handler_global_state(movie)
     print("Launching server!")
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
@@ -79,8 +80,7 @@ def runStdOut(filepath):
     def draw_frame_to_stdout(screen_buffer):
         sys.stdout.write(screen_buffer.read().decode('iso-8859-15'))
 
-    movie = Movie()
-    movie.load(filepath)
+    movie = get_loaded_movie(filepath)
     player = VT100Player(movie)
     player.draw_frame = draw_frame_to_stdout
     player.play()
