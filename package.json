@@ -1,0 +1,30 @@
+{
+  "name": "telnet-server",
+  "version": "1.0.0",
+  "description": "Tool to record and host a ascii-based telnet server",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jtfalkenstein/ascii-telnet-server.git"
+  },
+  "keywords": [
+    "telnet",
+    "ascii",
+    "ghost"
+  ],
+  "author": "Jon Falkenstein",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jtfalkenstein/ascii-telnet-server/issues"
+  },
+  "homepage": "https://github.com/jtfalkenstein/ascii-telnet-server#readme",
+  "dependencies": {
+    "ascii-video": "^0.1.2"
+  },
+  "engines" : { "node" : ">=7" },
+  "engineStrict" : true
+}
