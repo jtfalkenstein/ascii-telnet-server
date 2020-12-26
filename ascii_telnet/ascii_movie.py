@@ -65,7 +65,7 @@ class Frame(object):
 
     def set_background_on_frame(self, background_code):
         self.data[0] = background_code + self.data[0]
-        self.data[-1] += colorama.Style.RESET_ALL
+        self.data[-1] += colorama.Style.RESET_ALL + colorama.Style.RESET_ALL
 
     @property
     def frame_seconds(self) -> float:
@@ -225,8 +225,6 @@ class Movie(object):
                 time_metadata = int(line.strip())
 
             if time_metadata is not None:
-                if current_frame:
-                    current_frame.set_background_on_frame(colorama.Back.BLACK)
                 current_frame = Frame(display_time=time_metadata)
                 frames.append(current_frame)
             else:
@@ -282,6 +280,9 @@ class Movie(object):
             raise ValueError("Subtitles length exceeds movie length")
 
     def _splice_line_into_frames(self, line: str, frame_iterator: Iterator[Frame], seconds_per_slide: int):
+        if '|' in line:
+            seconds, line = line.split('|')
+            seconds_per_slide = int(seconds.strip())
         formatted_lines = self._format_spliced_line(line)
         self._add_lines_to_required_frames(formatted_lines, frame_iterator, seconds_per_slide)
 
