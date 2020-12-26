@@ -325,8 +325,7 @@ class Movie(object):
         current_frame = None
         for index in range(len(self.frames)):
             this_frame = self.frames[index]
-
-            if this_frame == current_frame:
+            if current_frame and this_frame == current_frame:
                 current_frame.display_time += this_frame.display_time
                 continue
 
