@@ -61,14 +61,7 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def handle(self):
         visitor = self.prompt_for_name()
-        self.wfile.write(
-            (
-                "\nYou'll probably want to make your window wider. I'll give you a few to do that now. Size it to this:"
-                f"\n{self.movie.screen_width * '-'}"
-            ).encode('ISO-8859-1')
-        )
-        time.sleep(5)
-        self.wfile.write("\nHere we go!\n")
+        self.prepare_for_screen_size()
         try:
             send_notification(f"Server has been visited by {visitor} at {self.client_address}!")
         except MisconfiguredNotificationError:
@@ -85,6 +78,19 @@ class TelnetRequestHandler(StreamRequestHandler):
         received_string = visitor_bytes.decode('ISO-8859-1')
         split_by_hash = received_string.split('#')
         return split_by_hash[-1].strip()
+
+    def prepare_for_screen_size(self):
+        self.wfile.write(
+            (
+                "You'll probably want to make your window wider.\n"
+                "I'll give you a few to do that now. "
+                "The following should be a single line"
+                f"\n{self.movie.screen_width * '-'}"
+            ).encode('ISO-8859-1')
+        )
+        time.sleep(10)
+        self.wfile.write("\nHere we go!\n".encode('ISO-8859-1'))
+        time.sleep(2)
 
     def draw_frame(self, screen_buffer):
         """
