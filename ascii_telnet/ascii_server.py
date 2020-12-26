@@ -31,6 +31,7 @@ import socket
 
 from ascii_telnet.ascii_movie import Movie
 from ascii_telnet.ascii_player import VT100Player
+from ascii_telnet.connection_notifier import send_notification, MisconfiguredNotificationError
 
 try:
     # noinspection PyCompatibility
@@ -57,6 +58,11 @@ class TelnetRequestHandler(StreamRequestHandler):
         cls.movie = movie
 
     def handle(self):
+        try:
+            send_notification("Server has been visited!")
+        except MisconfiguredNotificationError:
+            pass
+        
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
