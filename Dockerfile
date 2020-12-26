@@ -17,6 +17,6 @@ RUN pip install -U pip
 RUN pip install -r requirements.txt
 
 
-EXPOSE 23
+ENV PORT=23
 
-CMD ["python", "ascii_telnet_server.py", "run"]
+CMD ["python", "ascii_telnet_server.py", "run", "-p", "$PORT"]
