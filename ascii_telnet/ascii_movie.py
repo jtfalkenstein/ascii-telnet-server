@@ -287,7 +287,7 @@ class Movie(object):
 
     def _format_spliced_line(self, line: str,) -> List[str]:
         line = line.strip()
-        text_width = self._frame_width - 2
+        text_width = self._frame_width
         if len(line) > text_width:
             lines = textwrap.wrap(line, width=text_width)
         else:
