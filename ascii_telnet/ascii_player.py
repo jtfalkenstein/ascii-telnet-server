@@ -76,7 +76,7 @@ class VT100Player(object):
                 return
             self._cursor += frame.display_time
             self._load_frame(frame, self._cursor)
-            time.sleep(frame.display_time / 15)
+            time.sleep(frame.frame_seconds)
 
     def stop(self):
         """

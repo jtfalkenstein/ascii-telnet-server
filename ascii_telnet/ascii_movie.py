@@ -29,13 +29,18 @@ from __future__ import division, print_function
 
 import pickle
 import re
+from typing import Iterator, List
 
 import colorama
 import yaml
+import textwrap
 
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
+
 class Frame(object):
+    DISPLAY_PER_SECONDS = 15
+
     def __init__(self, display_time=1):
         """
         One frame is typically 67 columns and 13 rows in effective size on screen.
@@ -61,6 +66,10 @@ class Frame(object):
     def set_background_on_frame(self, background_code):
         self.data[0] = background_code + self.data[0]
         self.data[-1] += colorama.Style.RESET_ALL
+
+    @property
+    def frame_seconds(self) -> float:
+        return self.display_time / self.DISPLAY_PER_SECONDS
 
 
 class TimeBar(object):
@@ -262,6 +271,43 @@ class Movie(object):
         with open(output_path, mode='wb') as f:
             pickle.dump(self, f)
         return output_path
+
+    def splice_in_text(self, text_file_path: str, seconds_per_slide: int):
+        frame_iterator = iter(self.frames)
+        with open(text_file_path) as f:
+            for line in f:
+                self._splice_line_into_frames(line, frame_iterator, seconds_per_slide)
+
+    def _splice_line_into_frames(self, line: str, frame_iterator: Iterator[Frame], seconds_per_slide: int):
+        formatted_lines = self._format_spliced_line(line)
+        self._add_lines_to_required_frames(formatted_lines, frame_iterator, seconds_per_slide)
+
+    def _format_spliced_line(self, line: str,) -> List[str]:
+        line = line.strip()
+        text_width = self._frame_width - 2
+        if len(line) > text_width:
+            line = textwrap.wrap(line, width=text_width)
+        lines = line.splitlines()
+        formatted = [
+            f'{colorama.Back.BLACK}{colorama.Fore.WHITE}{line.center(text_width)}{colorama.Style.RESET_ALL}'
+            for line in lines
+        ]
+        return formatted
+
+    def _add_lines_to_required_frames(
+        self,
+        formatted_lines: List[str],
+        frame_iterator: Iterator[Frame],
+        seconds_per_slide: int
+    ):
+        accumulated_time = 0
+        while accumulated_time < seconds_per_slide:
+            frame = next(frame_iterator)
+            frame.data.extend(formatted_lines)
+            width, height = frame.dimensions
+            if height > self._frame_height:
+                self.set_frame_dimensions(width, height)
+            accumulated_time += frame.frame_seconds
 
 
 def get_loaded_movie(filepath) -> Movie:
