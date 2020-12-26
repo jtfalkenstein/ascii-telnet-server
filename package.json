@@ -25,7 +25,7 @@
     "ascii-video": "^0.1.2"
   },
   "engines": {
-    "node": ">=7"
+    "node": ">=10"
   },
   "engineStrict": true
 }
