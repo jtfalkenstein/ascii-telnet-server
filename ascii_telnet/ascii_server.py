@@ -80,7 +80,7 @@ class TelnetRequestHandler(StreamRequestHandler):
     @classmethod
     def set_up_handler_global_state(cls, movie: Movie, dialogue_options: Optional[Dict[str, str]]):
         cls.movie = movie
-        cls.dialogue_options = dialogue_options
+        cls.dialogue_options = dialogue_options or {}
 
     def setup(self):
         send_notification("Server is standing up")
