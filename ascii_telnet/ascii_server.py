@@ -76,9 +76,9 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.player.play()
 
     def prompt_for_name(self) -> str:
-        self.rfile.flush() # Empty it from anything that precedes
+        self.rfile.flush()  # Empty it from anything that precedes
         self.wfile.write("Who dis? ".encode('ISO-8859-1'))
-        visitor_bytes = self.rfile.readline()
+        visitor_bytes = self.rfile.readline(50)
         received_string = visitor_bytes.decode('ISO-8859-1')
         split_by_hash = received_string.split('#')
         return split_by_hash[-1].strip()

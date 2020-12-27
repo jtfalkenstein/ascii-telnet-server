@@ -28,6 +28,7 @@ from __future__ import division, print_function
 
 import sys
 import time
+from datetime import datetime
 from io import BytesIO
 
 from ascii_telnet.ascii_movie import TimeBar
@@ -71,12 +72,33 @@ class VT100Player(object):
         Plays the movie
         """
         self._stopped = False
+        drift = 0
+        drift_tolerance = 1
+        dropped_frames = 0
         for frame in self._movie.frames:
             if self._stopped:
                 return
             self._cursor += frame.display_time
+            # We'll drop some frames to catch up, if we need to
+            if frame.frame_seconds <= (drift - drift_tolerance):
+                drift -= frame.frame_seconds
+                dropped_frames += 1
+                continue  # Skip this frame and don't even render it
+
+            right_now = datetime.now()
             self._load_frame(frame, self._cursor)
-            time.sleep(frame.frame_seconds)
+            draw_time = datetime.now() - right_now
+            sleep_time = frame.frame_seconds - draw_time.total_seconds()
+            if sleep_time < 0:
+                # When draw speed exceeds the total frame seconds, we record the drift so we can catch up later
+                drift += abs(sleep_time)
+                sleep_time = 0  # Don't really sleep at all if it's already taking too long
+            elif sleep_time > 0:
+                # When draw speed exceeds total frame seconds, we catch up, if there's catching up to do
+                drift -= min(frame.frame_seconds, drift)
+
+            time.sleep(sleep_time)
+        print(f"Dropped {dropped_frames} frames to speed connection")
 
     def stop(self):
         """
