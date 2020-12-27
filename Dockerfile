@@ -1,6 +1,5 @@
 FROM python:3.7
-COPY . /app
-WORKDIR /app
+
 
 # You only need this if you need to run make
 #ENV NODE_VERSION=10.23.0
@@ -13,9 +12,12 @@ WORKDIR /app
 #ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
 #RUN npm install
 
+COPY requirements.txt /tmp/requirements.txt
 RUN pip install -U pip
-RUN pip install -r requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
+COPY . /app
+WORKDIR /app
 EXPOSE 9001
 
 ENTRYPOINT ["python", "ascii_telnet_server.py", "run"]
