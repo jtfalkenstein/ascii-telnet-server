@@ -217,7 +217,8 @@ def make(
 @click.option(
     '-o',
     '--pickle_file_out',
-    type=click.Path()
+    type=click.Path(),
+    required=True
 )
 def combine(movie, pickle_file_out):
     movie_iterator = (

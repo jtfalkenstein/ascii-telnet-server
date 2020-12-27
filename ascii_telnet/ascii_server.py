@@ -123,9 +123,11 @@ class TelnetRequestHandler(StreamRequestHandler):
     def run_dialogue(self, visitor):
         for option in self.dialogue_options:
             if option.lower() in visitor.lower():
+                self.output(f"SUPER SECRET MESSAGE JUST FOR {option.upper()}:")
                 message = self.dialogue_options[option]
                 wrapped = textwrap.wrap(message, self.movie.screen_width)
                 with_line_breaks = '\n'.join(wrapped)
                 self.output(with_line_breaks)
+                self.output("...".center(self.movie.screen_width))
                 time.sleep(15)
                 break
