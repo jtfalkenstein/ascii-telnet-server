@@ -46,6 +46,7 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
 
 from ascii_telnet.ascii_movie import get_loaded_movie
 from ascii_telnet.ascii_player import VT100Player
@@ -66,7 +67,7 @@ def termination_handler(*args):
     send_notification("Server has been terminated!")
 
 
-def runTcpServer(interface, port, filename):
+def runTcpServer(interface, port, filename, dialogue_file=None):
     """
     Start a TCP server that a client can connect to that streams the output of
      Ascii Player
@@ -84,7 +85,12 @@ def runTcpServer(interface, port, filename):
         print(f"DNS update response: {response.read()}")
     print("Loading movie...")
     movie = get_loaded_movie(filename)
-    TelnetRequestHandler.set_up_handler_global_state(movie)
+    if dialogue_file:
+        with open(dialogue_file) as f:
+            dialogue_options = yaml.load(f)
+    else:
+        dialogue_options = None
+    TelnetRequestHandler.set_up_handler_global_state(movie, dialogue_options)
     print("Launching server!")
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
@@ -141,11 +147,17 @@ def cli():
     default=23,
     help="Bind to this port (default 23, Telnet)",
 )
+@click.option(
+    '-d',
+    '--dialogue-file',
+    type=click.Path(exists=True)
+)
 def run(
     stdout,
     file,
     interface,
-    port
+    port,
+    dialogue_file
 ):
     try:
         if stdout:
@@ -153,7 +165,7 @@ def run(
         else:
             print("Running TCP server on {0}:{1}".format(interface, port))
             print("Playing movie {0}".format(file))
-            runTcpServer(interface, port, file)
+            runTcpServer(interface, port, file, dialogue_file)
 
     except KeyboardInterrupt:
         print("Ascii Player Quit.")

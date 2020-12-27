@@ -29,7 +29,9 @@ from __future__ import division, print_function
 import errno
 import os
 import socket
+import textwrap
 import time
+from typing import Optional, Dict
 
 from ascii_telnet.ascii_movie import Movie
 from ascii_telnet.ascii_player import VT100Player
@@ -54,10 +56,12 @@ class TelnetRequestHandler(StreamRequestHandler):
     """
 
     movie = None
+    dialogue_options = None
 
     @classmethod
-    def set_up_handler_global_state(cls, movie: Movie):
+    def set_up_handler_global_state(cls, movie: Movie, dialogue_options: Optional[Dict[str, str]]):
         cls.movie = movie
+        cls.dialogue_options = dialogue_options
 
     def setup(self):
         send_notification("Server is standing up")
@@ -65,6 +69,7 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def handle(self):
         visitor = self.prompt_for_name()
+        self.run_dialogue(visitor)
         self.prepare_for_screen_size()
         try:
             send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
@@ -84,19 +89,25 @@ class TelnetRequestHandler(StreamRequestHandler):
         return split_by_hash[-1].strip()
 
     def prepare_for_screen_size(self):
-        self.wfile.write(
-            (
-                "You'll probably want to make your window wider.\r\n"
-                "I'll give you a few to do that now.\r\n"
-                "The following should be a single line\r\n"
-                f"{self.movie.screen_width * '-'}\r\n"
-                f"Also, Windows telnet is the WORST client. \r\n"
-                f"You'll get a better experience with pretty much any other option."
-            ).encode('ISO-8859-1')
+        self.output(
+            f"{self.movie.screen_width * '-'}\n"
+            "For the best viewing experience, you'll probably want to make your window wider\n"
+            "I'll give you a few moments to do that now.\n"
+            "The following should be a single line\n"
+            f"{self.movie.screen_width * '-'}\n"
+            f"Also, Windows telnet is the WORST client.\n"
+            f"You'll get a better experience with pretty much any other option."
         )
         time.sleep(10)
-        self.wfile.write("\r\nHere we go!\r\n".encode('ISO-8859-1'))
+        self.output("Here we go!")
         time.sleep(2)
+
+    def output(self, output_text):
+        if not output_text.endswith('\n'):
+            output_text = f'{output_text}\n'
+        with_carriage_returns = output_text.replace('\n', '\r\n')
+        encoded = with_carriage_returns.encode('ISO-8859-1')
+        self.wfile.write(encoded)
 
     def draw_frame(self, screen_buffer):
         """
@@ -108,3 +119,13 @@ class TelnetRequestHandler(StreamRequestHandler):
             if e.errno == errno.EPIPE:
                 print("Client Disconnected.")
                 self.player.stop()
+
+    def run_dialogue(self, visitor):
+        for option in self.dialogue_options:
+            if option.lower() in visitor.lower():
+                message = self.dialogue_options[option]
+                wrapped = textwrap.wrap(message, self.movie.screen_width)
+                with_line_breaks = '\n'.join(wrapped)
+                self.output(with_line_breaks)
+                time.sleep(15)
+                break
