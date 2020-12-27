@@ -113,7 +113,7 @@ class TelnetRequestHandler(StreamRequestHandler):
             f"You'll get a better experience with pretty much any other option. \n"
             f"If you're on Windows, try using PuTTY or WSL."
         )
-        time.sleep(10)
+        time.sleep(20)
         self.output("Here we go!")
         time.sleep(2)
 
