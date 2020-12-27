@@ -41,7 +41,7 @@
   Python3 Update: Ryan Jarvis
 
 """
-
+import os
 import sys
 from pathlib import Path
 
@@ -53,6 +53,10 @@ from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
 from ascii_telnet.movie_maker import make_movie
 from ascii_telnet.connection_notifier import send_notification
 from signal import signal, SIGINT, SIGTERM
+from urllib.request import urlopen
+
+from os import environ
+DNS_UPDATE_URL = os.getenv('DNS_UPDATE_URL')
 
 current_directory = Path(__file__).parent
 default_movie = current_directory / 'movies' / 'movie.pkl'
@@ -74,6 +78,10 @@ def runTcpServer(interface, port, filename):
     """
     signal(SIGINT, termination_handler)
     signal(SIGTERM, termination_handler)
+    if DNS_UPDATE_URL:
+        print("updating dynamic DNS")
+        response = urlopen(DNS_UPDATE_URL)
+        print(f"DNS update response: {response.read()}")
     print("Loading movie...")
     movie = get_loaded_movie(filename)
     TelnetRequestHandler.set_up_handler_global_state(movie)
