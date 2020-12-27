@@ -70,12 +70,12 @@ class Frame(object):
         if current_height < height:
             self._increase_height(height)
         elif height < current_height:
-            raise ValueError("Cannot decrease frame size, only increase it.")
+            pass
 
         if current_width < width:
             self._increase_width(width)
         elif current_width < width:
-            raise ValueError("Cannot decrease frame size, only increase it.")
+            pass
 
     def _increase_height(self, height: int):
         current_width, current_height = self.dimensions
