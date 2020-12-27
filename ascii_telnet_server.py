@@ -153,7 +153,7 @@ def run(
 )
 @click.option(
     '-o',
-    '--text-file-out',
+    '--pickle-file-out',
     required=True
 )
 @click.option(
@@ -172,12 +172,37 @@ def run(
 )
 def make(
     video_file_in,
-    text_file_out,
+    pickle_file_out,
     node_path,
     subtitles,
     subtitle_seconds
 ):
-    make_movie(video_file_in, text_file_out, node_path, subtitles, subtitle_seconds)
+    make_movie(video_file_in, pickle_file_out, node_path, subtitles, subtitle_seconds)
+
+@cli.command()
+@click.option(
+    '-m',
+    '--movie',
+    multiple=True,
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-o',
+    '--pickle_file_out',
+    type=click.Path()
+)
+def combine(movie, pickle_file_out):
+    movie_iterator = (
+        get_loaded_movie(movie_path)
+        for movie_path in movie
+    )
+    first_movie = next(movie_iterator)
+    for subsequent_movie in movie_iterator:
+        first_movie += subsequent_movie
+
+    first_movie.compress()
+    first_movie.to_pickle(pickle_file_out)
 
 
 if __name__ == "__main__":

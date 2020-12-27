@@ -29,7 +29,7 @@ from __future__ import division, print_function
 
 import pickle
 import re
-from typing import Iterator, List
+from typing import Iterator, List, Tuple
 
 import colorama
 import yaml
@@ -62,6 +62,42 @@ class Frame(object):
             for line in self.data
         )
         return width, height
+
+    @dimensions.setter
+    def dimensions(self, value: Tuple[int, int]):
+        width, height = value
+        current_width, current_height = self.dimensions
+        if current_height < height:
+            self._increase_height(height)
+        elif height < current_height:
+            raise ValueError("Cannot decrease frame size, only increase it.")
+
+        if current_width < width:
+            self._increase_width(width)
+        elif current_width < width:
+            raise ValueError("Cannot decrease frame size, only increase it.")
+
+    def _increase_height(self, height: int):
+        current_width, current_height = self.dimensions
+        diff = height - current_height
+        margin = diff // 2
+        padding = diff - (margin * 2)
+        padding_content = [' ' * current_width] * padding
+        margin_content = [' ' * current_width] * margin
+        self.data = padding_content + margin_content + self.data + margin_content
+
+    def _increase_width(self, width: int):
+        current_width, current_height = self.dimensions
+        diff = width - current_width
+        margin = diff // 2
+        padding = diff - (margin * 2)
+        padding_content = ' ' * padding
+        margin_content = ' ' * margin
+        lines = [
+            margin_content + row + margin_content + padding_content
+            for row in self.data
+        ]
+        self.data = lines
 
     def set_background_on_frame(self, background_code):
         self.data[0] = background_code + self.data[0]
@@ -244,7 +280,6 @@ class Movie(object):
         return list(self.generate_frames(yaml_reader))
 
     def generate_frames(self, yaml_reader):
-        dimensions_evaluated = False
         for event in yaml_reader:
             if isinstance(event, yaml.StreamEndEvent):
                 break
@@ -254,10 +289,7 @@ class Movie(object):
                 frame = Frame()
                 frame.data = lines[:-1]
                 frame.set_background_on_frame(colorama.Back.BLACK)
-                if not dimensions_evaluated:
-                    width, height = frame.dimensions
-                    self.set_frame_dimensions(width, height)
-                    dimensions_evaluated = True
+                self._add_frames([frame])
                 yield frame
 
     def _fix_line(self, line):
@@ -290,7 +322,7 @@ class Movie(object):
             seconds, line = line.split('|')
             seconds_per_slide = int(seconds.strip())
         formatted_lines = self._format_spliced_line(line)
-        self._add_lines_to_required_frames(formatted_lines, frame_iterator, seconds_per_slide)
+        self._add_text_lines_to_required_frames(formatted_lines, frame_iterator, seconds_per_slide)
 
     def _format_spliced_line(self, line: str,) -> List[str]:
         line = line.strip()
@@ -305,7 +337,7 @@ class Movie(object):
         ]
         return formatted
 
-    def _add_lines_to_required_frames(
+    def _add_text_lines_to_required_frames(
         self,
         formatted_lines: List[str],
         frame_iterator: Iterator[Frame],
@@ -319,6 +351,12 @@ class Movie(object):
             if height > self._frame_height:
                 self.set_frame_dimensions(width, height)
             accumulated_time += frame.frame_seconds
+
+    def _add_frames(self, frames: List[Frame]):
+        for frame in frames:
+            self.frames.append(frame)
+            frame.dimensions = self._frame_width, self._frame_height
+            frame.set_background_on_frame(colorama.Back.BLACK)
 
     def compress(self):
         new_frames = []
@@ -335,6 +373,10 @@ class Movie(object):
         print(f"Compression ratio achieved! {compression_percent}%")
 
         self.frames = new_frames
+
+    def __iadd__(self, other):
+        self._add_frames(other.frames)
+        return self
 
 
 def get_loaded_movie(filepath) -> Movie:
