@@ -73,14 +73,13 @@ class VT100Player(object):
         """
         self._stopped = False
         drift = 0
-        drift_tolerance = 1
         dropped_frames = 0
         for frame in self._movie.frames:
             if self._stopped:
                 return
             self._cursor += frame.display_time
             # We'll drop some frames to catch up, if we need to
-            if frame.frame_seconds <= (drift - drift_tolerance):
+            if frame.frame_seconds <= drift:
                 drift -= frame.frame_seconds
                 dropped_frames += 1
                 continue  # Skip this frame and don't even render it
