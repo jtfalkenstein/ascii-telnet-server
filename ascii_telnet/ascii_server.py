@@ -120,6 +120,7 @@ class TelnetRequestHandler(StreamRequestHandler):
     def output(self, output_text, return_at_end=True):
         if return_at_end and not output_text.endswith('\n'):
             output_text = f'{output_text}\n'
+        # Silly Windows
         with_carriage_returns = output_text.replace('\n', '\r\n')
         encoded = with_carriage_returns.encode('ISO-8859-1')
         self.wfile.write(encoded)
