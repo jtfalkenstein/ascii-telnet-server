@@ -128,7 +128,7 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.output(prompt_text, False)
         raw_bytes_in = self.rfile.readline(max_bytes_in)
         input_string = self.get_text_from_raw_bytes(raw_bytes_in)
-        return input_string
+        return input_string.strip()
 
     def get_text_from_raw_bytes(self, bytes_in: bytes) -> str:
         byterator = iter(bytes_in)
