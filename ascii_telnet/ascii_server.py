@@ -49,6 +49,25 @@ class ThreadedTCPServer(ThreadingMixIn, TCPServer):
     daemon_threads = True
 
 
+# Telnet special command codes
+IAC = 255  # "Interpret As Command"
+DONT = 254
+DO = 253
+WONT = 252
+WILL = 251
+SE = 240  # Subnegotiation End
+NOP = 241  # No Operation
+DM = 242  # Data Mark
+BRK = 243  # Break
+IP = 244  # Interrupt process
+AO = 245  # Abort output
+AYT = 246  # Are You There
+EC = 247  # Erase Character
+EL = 248  # Erase Line
+GA = 249  # Go Ahead
+SB = 250  # Subnegotiation Begin
+
+
 class TelnetRequestHandler(StreamRequestHandler):
     """
     Request handler used for multi threaded TCP server
@@ -69,24 +88,18 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def handle(self):
         visitor = self.prompt_for_name()
-        self.run_dialogue(visitor)
-        self.prepare_for_screen_size()
         try:
             send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
         except MisconfiguredNotificationError:
             pass
-
+        self.run_dialogue(visitor)
+        self.prepare_for_screen_size()
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
 
     def prompt_for_name(self) -> str:
-        self.rfile.flush()  # Empty it from anything that precedes
-        self.wfile.write("Who dis? ".encode('ISO-8859-1'))
-        visitor_bytes = self.rfile.readline(50)
-        received_string = visitor_bytes.decode('ISO-8859-1')
-        split_by_hash = received_string.split('#')
-        return split_by_hash[-1].strip()
+        return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
         self.output(
@@ -102,12 +115,36 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.output("Here we go!")
         time.sleep(2)
 
-    def output(self, output_text):
-        if not output_text.endswith('\n'):
+    def output(self, output_text, return_at_end=True):
+        if return_at_end and not output_text.endswith('\n'):
             output_text = f'{output_text}\n'
         with_carriage_returns = output_text.replace('\n', '\r\n')
         encoded = with_carriage_returns.encode('ISO-8859-1')
         self.wfile.write(encoded)
+
+    def prompt(self, prompt_text, max_bytes_in=50, pad_with_trailing_space=True) -> str:
+        if pad_with_trailing_space:
+            prompt_text += ' '
+        self.output(prompt_text, False)
+        raw_bytes_in = self.rfile.readline(max_bytes_in)
+        input_string = self.get_text_from_raw_bytes(raw_bytes_in)
+        return input_string
+
+    def get_text_from_raw_bytes(self, bytes_in: bytes) -> str:
+        byterator = iter(bytes_in)
+        # Telnet is tricky and there are special command codes that can precede the input
+        last_byte = None
+        real_text_bytes = []
+        for byte_integer in byterator:
+            if SE <= byte_integer <= IAC:  # Normal telnet negotiation stuff
+                continue
+            if last_byte == WILL:
+                continue
+            real_text_bytes.append(byte_integer)
+
+        remainder_of_bytes = bytes(real_text_bytes)
+        decoded = remainder_of_bytes.decode('ISO-8859-1')
+        return decoded
 
     def draw_frame(self, screen_buffer):
         """
