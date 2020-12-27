@@ -59,6 +59,10 @@ class TelnetRequestHandler(StreamRequestHandler):
     def set_up_handler_global_state(cls, movie: Movie):
         cls.movie = movie
 
+    def setup(self):
+        send_notification("Server is standing up")
+        return super().setup()
+
     def handle(self):
         visitor = self.prompt_for_name()
         self.prepare_for_screen_size()

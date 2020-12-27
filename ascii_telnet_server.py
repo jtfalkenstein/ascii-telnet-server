@@ -42,20 +42,25 @@
 
 """
 
-import os
 import sys
-from optparse import OptionParser
 from pathlib import Path
 
-from ascii_telnet.ascii_movie import Movie, get_loaded_movie
-from ascii_telnet.ascii_player import VT100Player
-from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
 import click
 
+from ascii_telnet.ascii_movie import get_loaded_movie
+from ascii_telnet.ascii_player import VT100Player
+from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
 from ascii_telnet.movie_maker import make_movie
+from ascii_telnet.connection_notifier import send_notification
+from signal import signal, SIGINT, SIGTERM
 
 current_directory = Path(__file__).parent
 default_movie = current_directory / 'movies' / 'movie.pkl'
+
+
+def termination_handler(*args):
+    send_notification("Server has been terminated!")
+
 
 def runTcpServer(interface, port, filename):
     """
@@ -67,6 +72,8 @@ def runTcpServer(interface, port, filename):
         port (int): bind to this port
         filename (str): file name of the ASCII movie
     """
+    signal(SIGINT, termination_handler)
+    signal(SIGTERM, termination_handler)
     print("Loading movie...")
     movie = get_loaded_movie(filename)
     TelnetRequestHandler.set_up_handler_global_state(movie)
