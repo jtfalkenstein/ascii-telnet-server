@@ -86,14 +86,16 @@ class TelnetRequestHandler(StreamRequestHandler):
     def prepare_for_screen_size(self):
         self.wfile.write(
             (
-                "You'll probably want to make your window wider.\n"
-                "I'll give you a few to do that now. "
-                "The following should be a single line"
-                f"\n{self.movie.screen_width * '-'}"
+                "You'll probably want to make your window wider.\r\n"
+                "I'll give you a few to do that now.\r\n"
+                "The following should be a single line\r\n"
+                f"{self.movie.screen_width * '-'}\r\n"
+                f"Also, Windows telnet is the WORST client. \r\n"
+                f"You'll get a better experience with pretty much any other option."
             ).encode('ISO-8859-1')
         )
         time.sleep(10)
-        self.wfile.write("\nHere we go!\n".encode('ISO-8859-1'))
+        self.wfile.write("\r\nHere we go!\r\n".encode('ISO-8859-1'))
         time.sleep(2)
 
     def draw_frame(self, screen_buffer):
