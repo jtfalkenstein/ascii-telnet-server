@@ -100,8 +100,10 @@ class Frame(object):
         self.data = lines
 
     def set_background_on_frame(self, background_code):
-        self.data[0] = background_code + self.data[0]
-        self.data[-1] += colorama.Style.RESET_ALL + colorama.Style.RESET_ALL
+        self.data = [
+            background_code + line + colorama.Style.RESET_ALL
+            for line in self.data
+        ]
 
     @property
     def frame_seconds(self) -> float:
