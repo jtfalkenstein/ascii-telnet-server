@@ -18,4 +18,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 9001
 
-CMD ["python", "ascii_telnet_server.py", "run", "-p", "9001"]
+ENTRYPOINT ["python", "ascii_telnet_server.py", "run"]
