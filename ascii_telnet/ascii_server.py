@@ -108,8 +108,10 @@ class TelnetRequestHandler(StreamRequestHandler):
             "I'll give you a few moments to do that now.\n"
             "The following should be a single line\n"
             f"{self.movie.screen_width * '-'}\n"
-            f"Also, Windows telnet is the WORST client.\n"
-            f"You'll get a better experience with pretty much any other option."
+            f"Also, Windows telnet is the WORST client. You won't get color and \n"
+            f"it'll run so slow that you'll be dropping frames to keep up.\n"
+            f"You'll get a better experience with pretty much any other option. \n"
+            f"If you're on Windows, try using PuTTY or WSL."
         )
         time.sleep(10)
         self.output("Here we go!")
