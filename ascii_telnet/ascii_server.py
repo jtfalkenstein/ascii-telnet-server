@@ -89,10 +89,6 @@ class TelnetRequestHandler(StreamRequestHandler):
         cls.dialogue_options = dialogue_options or {}
         cls.repo_url = repo_url
 
-    def setup(self):
-        send_notification("Server is standing up")
-        return super().setup()
-
     def handle(self):
         visitor = self.prompt_for_name()
         try:
