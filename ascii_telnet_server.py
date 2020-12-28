@@ -26,24 +26,11 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-"""
-  ASCII art movie Telnet player.
-  Version         : 0.1
-
-  Can stream an ~20 minutes ASCII movie via Telnet emulation
-  as stand alone server or via xinetd daemon.
-  Tested with Python 2.6+, Python 3.5+
-
-  Original art work : Simon Jansen ( http://www.asciimation.co.nz/ )
-  Telnetification
-  & Player coding   : Martin W. Kirst ( https://github.com/nitram509/ascii-telnet-server )
-  Python3 Update: Ryan Jarvis
-
-"""
 import os
 import sys
 from pathlib import Path
+from signal import signal, SIGINT, SIGTERM
+from urllib.request import urlopen
 
 import click
 import yaml
@@ -51,20 +38,21 @@ import yaml
 from ascii_telnet.ascii_movie import get_loaded_movie
 from ascii_telnet.ascii_player import VT100Player
 from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
-from ascii_telnet.movie_maker import make_movie
 from ascii_telnet.connection_notifier import send_notification
-from signal import signal, SIGINT, SIGTERM
-from urllib.request import urlopen
+from ascii_telnet.movie_maker import make_movie
 
-from os import environ
 DNS_UPDATE_URL = os.getenv('DNS_UPDATE_URL')
+REPO_URL = os.getenv('REPO_URL')
 
 current_directory = Path(__file__).parent
 default_movie = current_directory / 'movies' / 'movie.pkl'
 
 
 def termination_handler(*args):
-    send_notification("Server has been terminated!")
+    try:
+        send_notification("Server has been terminated!")
+    except Exception:
+        pass
 
 
 def runTcpServer(interface, port, filename, dialogue_file=None):
@@ -75,7 +63,8 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
     Args:
         interface (str):  bind to this interface
         port (int): bind to this port
-        filename (str): file name of the ASCII movie
+        filename (str): file name of the ASCII movie. Can be a txt file, yaml file, or pickled movie file.
+        dialogue_file (str): The file name for special dialogue options based upon visitor name
     """
     signal(SIGINT, termination_handler)
     signal(SIGTERM, termination_handler)
@@ -90,7 +79,7 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
             dialogue_options = yaml.load(f)
     else:
         dialogue_options = None
-    TelnetRequestHandler.set_up_handler_global_state(movie, dialogue_options)
+    TelnetRequestHandler.set_up_handler_global_state(movie, dialogue_options, REPO_URL)
     print("Launching server!")
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
@@ -114,10 +103,11 @@ def runStdOut(filepath):
 
 @click.group()
 def cli():
+    """Command line interface to run the various functions of the this tool."""
     pass
 
 
-@cli.command()
+@cli.command(short_help="Plays the video, either to stdout or as a telnet server")
 @click.option(
     '--stdout',
     is_flag=True,
@@ -150,7 +140,11 @@ def cli():
 @click.option(
     '-d',
     '--dialogue-file',
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    help=(
+        "File path of yaml file where keys are visitor name search strings and values are special messages to display "
+        "to that specific visitor."
+    )
 )
 def run(
     stdout,
@@ -159,6 +153,30 @@ def run(
     port,
     dialogue_file
 ):
+    """Plays the specified movie file, either via stdout (if the --stdout) flag is used, or as a Telnet server
+    (the default)
+
+    There are a few environment variables that are used by this process, for various purposes:
+
+    \b
+    To make gmail notifications work on server standup, termination, and client connection:
+        * NOTIFICATION_USERNAME: The GMAIL username (without the @gmail.com)
+        * NOTIFICATION_PASSWORD: The GMAIL password
+        * DESTINATION_EMAIL_ADDRESS: The email address to receive the notifications
+        * APP_NAME: The name of the app to include in the notifications
+
+        If any of the above environment variables are not set, gmail notification will not happen.
+
+    \b
+    To update DNS entry (for example, when using FreeDNS or similar service):
+        DNS_UPDATE_URL: The url to send a GET request to in order to update the DNS A Record
+
+        If this is not set, DNS records will not be updated
+
+    \b
+    To include a "check out this code" message at the very end:
+        REPO_URL: The url to code repository to check out this code
+    """
     try:
         if stdout:
             runStdOut(file)
@@ -171,31 +189,39 @@ def run(
         print("Ascii Player Quit.")
 
 
-@cli.command()
+@cli.command(short_help="Creates a pickled movie to play from a video file.")
 @click.option(
     '-i',
     '--video-file-in',
     required=True,
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    help="A valid video file, such as mp4, that can be rendered using ffmpeg to produce movie."
 )
 @click.option(
     '-o',
     '--pickle-file-out',
-    required=True
+    required=True,
+    help="The output filename to save the pickled movie to. Should end with .pkl"
 )
 @click.option(
     '--node-path',
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    help="Path to NodeJS executable. If not specified, will rely on 'node' being in your PATH"
 )
 @click.option(
     '-s',
     '--subtitles',
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    help="Subtitles file path. This should be a text file where each line is a 'slide'."
 )
 @click.option(
     '--subtitle-seconds',
     type=click.INT,
-    default=5
+    default=5,
+    help=(
+        "Default number of seconds per slide in subtitles. Can be overridden with a line starting with '#|'. where the "
+        "number is the number of seconds it should display for."
+    )
 )
 def make(
     video_file_in,
@@ -204,21 +230,31 @@ def make(
     subtitles,
     subtitle_seconds
 ):
+    """Creates an ascii-movie from a video file and then saves it as a pickle for fast loading later.
+
+    Note: This method requires the ascii-video nodejs package installed using the attached package.json with at least
+    node version 10. Why? Because this is simply the best video-to-ascii conversion tool I could find that produced
+    colorful, text-based output into a single file. This functionality COULD be produced in native Python, but nothing
+    similar seems to exist at this point.
+    """
     make_movie(video_file_in, pickle_file_out, node_path, subtitles, subtitle_seconds)
 
-@cli.command()
+
+@cli.command(short_help="Combines multiple movies together into a single move, output to a pickle file.")
 @click.option(
     '-m',
     '--movie',
     multiple=True,
     type=click.Path(exists=True),
-    required=True
+    required=True,
+    help="Movie files to combine. Can be .txt, .yaml, or .pkl. This option can be used multiple times."
 )
 @click.option(
     '-o',
     '--pickle_file_out',
     type=click.Path(),
-    required=True
+    required=True,
+    help="Output filepath for the combined and pickled movie file."
 )
 def combine(movie, pickle_file_out):
     movie_iterator = (

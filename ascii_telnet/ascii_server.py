@@ -76,11 +76,18 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     movie = None
     dialogue_options = None
+    repo_url = None
 
     @classmethod
-    def set_up_handler_global_state(cls, movie: Movie, dialogue_options: Optional[Dict[str, str]]):
+    def set_up_handler_global_state(
+        cls,
+        movie: Movie,
+        dialogue_options: Optional[Dict[str, str]],
+        repo_url: Optional[str]
+    ):
         cls.movie = movie
         cls.dialogue_options = dialogue_options or {}
+        cls.repo_url = repo_url
 
     def setup(self):
         send_notification("Server is standing up")
@@ -97,10 +104,11 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
-        self.output(
-            "Interested in how I did this? See my source code at: \n"
-            "https://github.com/jtfalkenstein/telnet-movie-player"
-        )
+        if self.repo_url:
+            self.output(
+                "\nInterested in how I did this? See my source code at: \n"
+                "https://github.com/jtfalkenstein/telnet-movie-player"
+            )
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
