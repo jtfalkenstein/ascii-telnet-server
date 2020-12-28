@@ -67,6 +67,7 @@ EL = 248  # Erase Line
 GA = 249  # Go Ahead
 SB = 250  # Subnegotiation Begin
 
+class NotAHumanError(Exception): pass
 
 class TelnetRequestHandler(StreamRequestHandler):
     """
@@ -91,6 +92,12 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def handle(self):
         visitor = self.prompt_for_name()
+        try:
+            self.verify_is_human()
+        except NotAHumanError:
+            print(f"Nonhuman visited: {visitor}")
+            return
+        
         try:
             send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
         except MisconfiguredNotificationError:
@@ -136,6 +143,7 @@ class TelnetRequestHandler(StreamRequestHandler):
     def prompt(self, prompt_text, max_bytes_in=50, pad_with_trailing_space=True) -> str:
         if pad_with_trailing_space:
             prompt_text += ' '
+        self.rfile.flush()
         self.output(prompt_text, False)
         raw_bytes_in = self.rfile.readline(max_bytes_in)
         input_string = self.get_text_from_raw_bytes(raw_bytes_in)
@@ -179,3 +187,12 @@ class TelnetRequestHandler(StreamRequestHandler):
                 self.output("...".center(self.movie.screen_width))
                 time.sleep(15)
                 break
+
+    def verify_is_human(self):
+        response = self.prompt("Are you a human?", 20)
+        for answer in ['yes', 'yea', 'si', 'yep']:
+            if answer in response:
+                self.output("Whew. Ok. I thought you were a robot. Close one!")
+                return
+        self.output("Robots are not welcome! Get off my lawn!")
+        raise NotAHumanError()
