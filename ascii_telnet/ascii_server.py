@@ -97,7 +97,7 @@ class TelnetRequestHandler(StreamRequestHandler):
         except NotAHumanError:
             print(f"Nonhuman visited: {visitor}")
             return
-        
+
         try:
             send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
         except MisconfiguredNotificationError:
@@ -123,10 +123,7 @@ class TelnetRequestHandler(StreamRequestHandler):
             "I'll give you a few moments to do that now.\n"
             "The following should be a single line\n"
             f"{self.movie.screen_width * '-'}\n"
-            f"Also, Windows telnet is the WORST client. You won't get color and \n"
-            f"it'll run so slow that you'll be dropping frames to keep up.\n"
-            f"You'll get a better experience with pretty much any other option. \n"
-            f"If you're on Windows, try using PuTTY or WSL."
+            f"Also, Windows telnet is the WORST client. If you're on Windows, try using PuTTY or WSL."
         )
         time.sleep(20)
         self.output("Here we go!")
@@ -191,7 +188,7 @@ class TelnetRequestHandler(StreamRequestHandler):
     def verify_is_human(self):
         response = self.prompt("Are you a human?", 20)
         for answer in ['yes', 'yea', 'si', 'yep']:
-            if answer in response:
+            if answer in response.lower():
                 self.output("Whew. Ok. I thought you were a robot. Close one!")
                 return
         self.output("Robots are not welcome! Get off my lawn!")
