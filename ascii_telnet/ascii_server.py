@@ -24,10 +24,7 @@
 #  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-from __future__ import division, print_function
-
 import errno
-import os
 import socket
 import textwrap
 import time
@@ -67,7 +64,9 @@ EL = 248  # Erase Line
 GA = 249  # Go Ahead
 SB = 250  # Subnegotiation Begin
 
+
 class NotAHumanError(Exception): pass
+
 
 class TelnetRequestHandler(StreamRequestHandler):
     """
@@ -112,7 +111,7 @@ class TelnetRequestHandler(StreamRequestHandler):
                 "\nInterested in how I did this? See my source code at: \n"
                 "https://github.com/jtfalkenstein/telnet-movie-player"
             )
-        self.prompt_for_parting_message()
+        self.prompt_for_parting_message(visitor)
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
@@ -195,10 +194,10 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.output("Robots are not welcome! Get off my lawn!")
         raise NotAHumanError()
 
-    def prompt_for_parting_message(self):
-        self.output("Looks like you made it all the way to the end.")
-        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.", 300)
-        notification = f"Parting message received: {parting_message}"
+    def prompt_for_parting_message(self, visitor_name: str):
+        self.output("\nLooks like you made it all the way to the end.")
+        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.\n>>", 300)
+        notification = f"Parting message received from {visitor_name}: {parting_message}"
         try:
             send_notification(notification)
         except MisconfiguredNotificationError:
