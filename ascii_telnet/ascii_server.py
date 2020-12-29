@@ -197,7 +197,7 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def prompt_for_parting_message(self):
         self.output("Looks like you made it all the way to the end.")
-        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.")
+        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.", 300)
         notification = f"Parting message received: {parting_message}"
         try:
             send_notification(notification)
