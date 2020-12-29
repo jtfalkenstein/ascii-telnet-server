@@ -1,5 +1,5 @@
 .gitignore
 .dockerignore
-.travis.yml
 raw_assets
 Dockerfile
+node_modules
