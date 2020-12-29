@@ -71,7 +71,7 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
     if DNS_UPDATE_URL:
         print("updating dynamic DNS")
         response = urlopen(DNS_UPDATE_URL)
-        print(f"DNS update response: {response.read()}")
+        print(f"DNS update response: {response.read().decode('utf-8')}")
     print("Loading movie...")
     movie = get_loaded_movie(filename)
     if dialogue_file:
