@@ -106,12 +106,12 @@ class TelnetRequestHandler(StreamRequestHandler):
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
+        self.prompt_for_parting_message(visitor)
         if self.repo_url:
             self.output(
                 "\nInterested in how I did this? See my source code at: \n"
-                "https://github.com/jtfalkenstein/telnet-movie-player"
+                f"{self.repo_url}"
             )
-        self.prompt_for_parting_message(visitor)
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
