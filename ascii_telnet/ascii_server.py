@@ -112,6 +112,7 @@ class TelnetRequestHandler(StreamRequestHandler):
                 "\nInterested in how I did this? See my source code at: \n"
                 "https://github.com/jtfalkenstein/telnet-movie-player"
             )
+        self.prompt_for_parting_message()
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
@@ -193,3 +194,12 @@ class TelnetRequestHandler(StreamRequestHandler):
                 return
         self.output("Robots are not welcome! Get off my lawn!")
         raise NotAHumanError()
+
+    def prompt_for_parting_message(self):
+        self.output("Looks like you made it all the way to the end.")
+        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.")
+        notification = f"Parting message received: {parting_message}"
+        try:
+            send_notification(notification)
+        except MisconfiguredNotificationError:
+            print(notification)
