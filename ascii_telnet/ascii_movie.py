@@ -409,6 +409,29 @@ class Movie(object):
         ]
         return movie
 
+    def create_viewing_area_box(self):
+        horizontal_bound = '-' * self.screen_width
+        lines_to_add = self.screen_height - 2
+        inner_text_width = self.screen_width - 2
+        empty_inner_line = f"|{' ' * inner_text_width}|"
+        viewing_area_text = "In order to ensure proper viewing, Resize your terminal so it can fit this entire box."
+        wrapped = textwrap.wrap(viewing_area_text, inner_text_width)
+        centered = [
+            f"|{line.center(inner_text_width)}|"
+            for line in wrapped
+        ]
+        empty_lines = lines_to_add - len(centered)
+        upper_empty = empty_lines // 2
+        lower_empty = empty_lines - upper_empty
+        viewing_box = (
+            [horizontal_bound] +
+            ([empty_inner_line] * upper_empty) +
+            centered +
+            ([empty_inner_line] * lower_empty) +
+            [horizontal_bound]
+        )
+        return '\n'.join(viewing_box)
+
 
 def get_loaded_movie(filepath) -> Movie:
     if filepath.endswith('.pkl'):
