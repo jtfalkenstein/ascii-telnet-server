@@ -63,6 +63,7 @@ EC = 247  # Erase Character
 EL = 248  # Erase Line
 GA = 249  # Go Ahead
 SB = 250  # Subnegotiation Begin
+NAWS = 31
 
 
 class NotAHumanError(Exception): pass
@@ -147,16 +148,21 @@ class TelnetRequestHandler(StreamRequestHandler):
         return input_string.strip()
 
     def get_text_from_raw_bytes(self, bytes_in: bytes) -> str:
-        byterator = iter(bytes_in)
         # Telnet is tricky and there are special command codes that can precede the input
         last_byte = None
         real_text_bytes = []
-        for byte_integer in byterator:
-            if SE <= byte_integer <= IAC:  # Normal telnet negotiation stuff
-                continue
-            if last_byte == WILL:
-                continue
-            real_text_bytes.append(byte_integer)
+        for byte_integer in bytes_in:
+            if last_byte == SB and byte_integer == SE:
+                pass
+            elif last_byte == SB:
+                continue  # We'll skip everything between SB and SE
+            elif last_byte in (IAC, WILL, WONT, DO, DONT):
+                pass
+            elif 240 <= byte_integer <= 255:
+                pass
+            else:
+                real_text_bytes.append(byte_integer)
+            last_byte = byte_integer
 
         remainder_of_bytes = bytes(real_text_bytes)
         decoded = remainder_of_bytes.decode('ISO-8859-1')
