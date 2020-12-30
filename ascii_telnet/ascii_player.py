@@ -31,7 +31,7 @@ import time
 from datetime import datetime
 from io import BytesIO
 
-from ascii_telnet.ascii_movie import TimeBar
+from ascii_telnet.ascii_movie import TimeBar, Movie
 
 
 class VT100Player(object):
@@ -44,7 +44,7 @@ class VT100Player(object):
     CLEARSCRN = ESC + "[2J"  # Clear entire screen
     CLEARDOWN = ESC + "[J"  # Clear screen from cursor down
 
-    def __init__(self, movie):
+    def __init__(self, movie: Movie):
         """
         Player class plays a movie.
         It also stores the current position.
@@ -74,7 +74,9 @@ class VT100Player(object):
         self._stopped = False
         drift = 0
         dropped_frames = 0
-        for frame in self._movie.frames:
+        destyling_applied = False
+        movie = self._movie.clone()
+        for frame in movie.frames:
             if self._stopped:
                 return
             self._cursor += frame.display_time
@@ -96,8 +98,15 @@ class VT100Player(object):
                 # When draw speed exceeds total frame seconds, we catch up, if there's catching up to do
                 drift -= min(frame.frame_seconds, drift)
 
+            if (dropped_frames / frame.DISPLAY_PER_SECONDS) > 2 and not destyling_applied:
+                movie.remove_styling()
+                print("Destyling applied to speed transmission")
+                destyling_applied = True
+
             time.sleep(sleep_time)
         print(f"Dropped {dropped_frames} frames to speed connection")
+
+
 
     def stop(self):
         """
