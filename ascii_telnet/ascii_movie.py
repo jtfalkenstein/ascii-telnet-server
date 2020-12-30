@@ -29,6 +29,7 @@ from __future__ import division, print_function
 
 import pickle
 import re
+from copy import deepcopy
 from typing import Iterator, List, Tuple
 
 import colorama
@@ -58,10 +59,13 @@ class Frame(object):
     def dimensions(self):
         height = len(self.data)
         width = max(
-            len(ansi_escape.sub('', line))
+            len(self._remove_ansi_sequences_from_line(line))
             for line in self.data
         )
         return width, height
+
+    def _remove_ansi_sequences_from_line(self, line: str):
+        return ansi_escape.sub('', line)
 
     @dimensions.setter
     def dimensions(self, value: Tuple[int, int]):
@@ -105,6 +109,12 @@ class Frame(object):
             for line in self.data
         ]
 
+    def remove_styling(self):
+        self.data = [
+            self._remove_ansi_sequences_from_line(line)
+            for line in self.data
+        ]
+
     @property
     def frame_seconds(self) -> float:
         return self.display_time / self.DISPLAY_PER_SECONDS
@@ -113,6 +123,11 @@ class Frame(object):
         if other is None:
             return False
         return self.data == other.data
+
+    def clone(self) -> 'Frame':
+        frame = self.__class__(self.display_time)
+        frame.data = deepcopy(self.data)
+        return frame
 
 
 class TimeBar(object):
@@ -376,9 +391,23 @@ class Movie(object):
 
         self.frames = new_frames
 
+    def remove_styling(self):
+        """For windows terminal, this will help improve transmission rates significantly."""
+        for frame in self.frames:
+            frame.remove_styling()
+
     def __iadd__(self, other):
         self._add_frames(other.frames)
         return self
+
+    def clone(self) -> 'Movie':
+        movie = self.__class__(self.screen_width, self.screen_height)
+        movie.set_frame_dimensions(self._frame_width, self._frame_height)
+        movie.frames = [
+            frame.clone()
+            for frame in self.frames
+        ]
+        return movie
 
 
 def get_loaded_movie(filepath) -> Movie:
