@@ -53,7 +53,7 @@ def termination_handler(*args):
         send_notification("Server has been terminated!")
     except Exception:
         pass
-
+    exit(0)
 
 def runTcpServer(interface, port, filename, dialogue_file=None):
     """
