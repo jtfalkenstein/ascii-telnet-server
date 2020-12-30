@@ -119,13 +119,13 @@ class TelnetRequestHandler(StreamRequestHandler):
     def prepare_for_screen_size(self):
         self.output(
             f"{self.movie.screen_width * '-'}\n"
-            "For the best viewing experience, you might want to make your window wider\n"
+            "For the best experience, you might want to make your window wider\n"
             "I'll give you a few moments to do that now.\n"
             "The following should be a single line\n"
             f"{self.movie.screen_width * '-'}\n"
             f"Also, Windows telnet is the WORST client. If you're on Windows, try using PuTTY or WSL."
         )
-        time.sleep(20)
+        time.sleep(15)
         self.output("Here we go!")
         time.sleep(2)
 
