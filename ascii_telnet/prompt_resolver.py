@@ -1,8 +1,12 @@
+import time
 from typing import Dict, Callable, Optional, Union
 
 from yaml import YAMLObject, ScalarNode, MappingNode, add_multi_constructor, Loader
 import re
 
+
+AVERAGE_READING_WORDS_PER_MINUTE = 250
+AVERAGE_READING_WORDS_PER_SECOND = AVERAGE_READING_WORDS_PER_MINUTE / 60
 
 class Output(YAMLObject):
     yaml_tag = '!Output'
@@ -12,6 +16,9 @@ class Output(YAMLObject):
 
     def run(self, output_func: Callable[[str], None]):
         output_func(self.output_text)
+        words_in_output_text = len(self.output_text.split())
+        seconds_to_sleep = words_in_output_text / AVERAGE_READING_WORDS_PER_SECOND + 2
+        time.sleep(seconds_to_sleep)
 
     @classmethod
     def from_yaml(cls, loader, node):
