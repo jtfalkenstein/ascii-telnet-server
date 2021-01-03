@@ -89,7 +89,6 @@ class TelnetRequestHandler(StreamRequestHandler):
         cls.dialogue_options = dialogue_options
 
     def handle(self):
-        self.declare_no_naws()
         try:
             self.verify_is_human()
         except NotAHumanError:
@@ -112,10 +111,6 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
-
-    def declare_no_naws(self):
-        no_naws_bytes = bytes([IAC, WONT, NAWS])
-        self.wfile.write(no_naws_bytes)
 
     def prepare_for_screen_size(self):
         self.output(
