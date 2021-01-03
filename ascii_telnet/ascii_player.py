@@ -74,6 +74,7 @@ class VT100Player(object):
         self._stopped = False
         drift = 0
         dropped_frames = 0
+        dropped_seconds = 0
         destyling_applied = False
         movie = self._movie.clone()
         for frame in movie.frames:
@@ -84,6 +85,7 @@ class VT100Player(object):
             if frame.frame_seconds <= drift:
                 drift -= frame.frame_seconds
                 dropped_frames += 1
+                dropped_seconds += frame.frame_seconds
                 continue  # Skip this frame and don't even render it
 
             right_now = datetime.now()
@@ -98,15 +100,13 @@ class VT100Player(object):
                 # When draw speed exceeds total frame seconds, we catch up, if there's catching up to do
                 drift -= min(frame.frame_seconds, drift)
 
-            if (dropped_frames / frame.DISPLAY_PER_SECONDS) > 2 and not destyling_applied:
+            if dropped_seconds > 5 and not destyling_applied:
                 movie.remove_styling()
                 print("Destyling applied to speed transmission")
                 destyling_applied = True
 
             time.sleep(sleep_time)
         print(f"Dropped {dropped_frames} frames to speed connection")
-
-
 
     def stop(self):
         """

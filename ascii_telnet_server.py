@@ -30,6 +30,7 @@ import os
 import sys
 from pathlib import Path
 from signal import signal, SIGINT, SIGTERM
+from time import sleep
 from urllib.request import urlopen
 
 import click
@@ -54,6 +55,7 @@ def termination_handler(*args):
     except Exception:
         pass
     exit(0)
+
 
 def runTcpServer(interface, port, filename, dialogue_file=None):
     """
@@ -85,12 +87,20 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
     server.serve_forever()
 
 
-def runStdOut(filepath):
+def runStdOut(filepath, dialogue_file=None):
     """
     Stream the output of the Ascii Player to STDOUT
     Args:
         filepath (str): file path of the ASCII movie
+        dialogue_file (str): The file name for special dialogue options based upon visitor name
     """
+    if dialogue_file:
+        with open(dialogue_file) as f:
+            # Import it to get the custom resolvers
+            import ascii_telnet.prompt_resolver
+            dialogue_options = yaml.load(f)
+            dialogue_options['dialogue'].run(input, print)
+            sleep(15)
 
     def draw_frame_to_stdout(screen_buffer):
         sys.stdout.write(screen_buffer.read().decode('iso-8859-15'))
@@ -98,6 +108,8 @@ def runStdOut(filepath):
     movie = get_loaded_movie(filepath)
     player = VT100Player(movie)
     player.draw_frame = draw_frame_to_stdout
+    print(movie.create_viewing_area_box())
+    sleep(5)
     player.play()
 
 
@@ -179,7 +191,7 @@ def run(
     """
     try:
         if stdout:
-            runStdOut(file)
+            runStdOut(file, dialogue_file)
         else:
             print("Running TCP server on {0}:{1}".format(interface, port))
             print("Playing movie {0}".format(file))
