@@ -1,12 +1,12 @@
-import time
-from typing import Dict, Callable, Optional, Union
-
-from yaml import YAMLObject, ScalarNode, MappingNode, add_multi_constructor, Loader
 import re
+import time
+from typing import Dict, Callable, Union
 
+from yaml import YAMLObject
 
 AVERAGE_READING_WORDS_PER_MINUTE = 250
 AVERAGE_READING_WORDS_PER_SECOND = AVERAGE_READING_WORDS_PER_MINUTE / 60
+
 
 class Output(YAMLObject):
     yaml_tag = '!Output'
