@@ -41,9 +41,9 @@ from ascii_telnet.ascii_player import VT100Player
 from ascii_telnet.ascii_server import TelnetRequestHandler, ThreadedTCPServer
 from ascii_telnet.connection_notifier import send_notification
 from ascii_telnet.movie_maker import make_movie
+from ascii_telnet.prompt_resolver import Dialogue
 
 DNS_UPDATE_URL = os.getenv('DNS_UPDATE_URL')
-REPO_URL = os.getenv('REPO_URL')
 
 current_directory = Path(__file__).parent
 default_movie = current_directory / 'movies' / 'movie.pkl'
@@ -57,7 +57,7 @@ def termination_handler(*args):
     exit(0)
 
 
-def runTcpServer(interface, port, filename, dialogue_file=None):
+def runTcpServer(interface, port, filename, dialogue: Dialogue):
     """
     Start a TCP server that a client can connect to that streams the output of
      Ascii Player
@@ -66,7 +66,7 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
         interface (str):  bind to this interface
         port (int): bind to this port
         filename (str): file name of the ASCII movie. Can be a txt file, yaml file, or pickled movie file.
-        dialogue_file (str): The file name for special dialogue options based upon visitor name
+        dialogue (Dialogue): The Dialogue object to run
     """
     signal(SIGINT, termination_handler)
     signal(SIGTERM, termination_handler)
@@ -76,34 +76,27 @@ def runTcpServer(interface, port, filename, dialogue_file=None):
         print(f"DNS update response: {response.read().decode('utf-8')}")
     print("Loading movie...")
     movie = get_loaded_movie(filename)
-    if dialogue_file:
-        with open(dialogue_file) as f:
-            dialogue_options = yaml.load(f)
-    else:
-        dialogue_options = None
-    TelnetRequestHandler.set_up_handler_global_state(movie, dialogue_options, REPO_URL)
+    TelnetRequestHandler.set_up_handler_global_state(movie, dialogue)
     print("Launching server!")
     server = ThreadedTCPServer((interface, port), TelnetRequestHandler)
     server.serve_forever()
 
 
-def runStdOut(filepath, dialogue_file=None):
+def runStdOut(filepath, dialogue: Dialogue = None):
     """
     Stream the output of the Ascii Player to STDOUT
     Args:
         filepath (str): file path of the ASCII movie
         dialogue_file (str): The file name for special dialogue options based upon visitor name
     """
-    if dialogue_file:
-        with open(dialogue_file) as f:
-            # Import it to get the custom resolvers
-            import ascii_telnet.prompt_resolver
-            dialogue_options = yaml.load(f)
-            dialogue_options['dialogue'].run(input, print)
-            sleep(15)
+    def prompt_func(prompt_text: str):
+        return input(f'{prompt_text} ')
 
     def draw_frame_to_stdout(screen_buffer):
         sys.stdout.write(screen_buffer.read().decode('iso-8859-15'))
+
+    if dialogue:
+        dialogue.run(prompt_func, print)
 
     movie = get_loaded_movie(filepath)
     player = VT100Player(movie)
@@ -184,18 +177,18 @@ def run(
         DNS_UPDATE_URL: The url to send a GET request to in order to update the DNS A Record
 
         If this is not set, DNS records will not be updated
-
-    \b
-    To include a "check out this code" message at the very end:
-        REPO_URL: The url to code repository to check out this code
     """
+    if dialogue_file:
+        with open(dialogue_file) as f:
+            result = yaml.unsafe_load(f)
+            dialogue = result['dialogue']
     try:
         if stdout:
-            runStdOut(file, dialogue_file)
+            runStdOut(file, dialogue)
         else:
             print("Running TCP server on {0}:{1}".format(interface, port))
             print("Playing movie {0}".format(file))
-            runTcpServer(interface, port, file, dialogue_file)
+            runTcpServer(interface, port, file, dialogue)
 
     except KeyboardInterrupt:
         print("Ascii Player Quit.")

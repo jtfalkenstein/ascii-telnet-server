@@ -21,10 +21,10 @@ class Output(YAMLObject):
 class Prompt(YAMLObject):
     yaml_tag = '!Prompt'
 
-    def __init__(self, prompt: str, responses: Union[dict, str]):
+    def __init__(self, prompt: str, response: Union[dict, str] = None):
         super().__init__()
         self.prompt = prompt
-        self.responses = responses
+        self.response = response
 
     def run(self, prompt_func: Callable[[str], str]) -> Dict:
         key = self.prompt
@@ -33,9 +33,12 @@ class Prompt(YAMLObject):
         return {key: (input_text, response)}
 
     def _find_response(self, response):
-        for key in self.responses:
-            if re.search(key, response, re.IGNORECASE):
-                return self.responses[key]
+        if isinstance(self.response, str):
+            return response
+        if isinstance(self.response, dict):
+            for key in self.response:
+                if re.search(key, response, re.IGNORECASE):
+                    return self.response[key]
 
 
 class Dialogue(YAMLObject):
@@ -45,12 +48,8 @@ class Dialogue(YAMLObject):
         super().__init__()
         self.conversations = conversations
 
-    def run(self, prompt_func: Callable[[str, int], str], output_func: Callable[[str], None]):
-        return {
-            key: self._resolve_conversation_value(value, prompt_func, output_func)
-            for key, value
-            in self.conversations.items()
-        }
+    def run(self, conversation_name: str, prompt_func: Callable[[str, int], str], output_func: Callable[[str], None]):
+        return self._resolve_conversation_value(self.conversations[conversation_name], prompt_func, output_func)
 
     def _resolve_conversation_value(self, value, prompt_func: Callable[[str], str], output_func: Callable[[str], None]):
         if isinstance(value, Prompt):

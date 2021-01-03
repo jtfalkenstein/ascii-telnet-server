@@ -33,6 +33,7 @@ from typing import Optional, Dict
 from ascii_telnet.ascii_movie import Movie
 from ascii_telnet.ascii_player import VT100Player
 from ascii_telnet.connection_notifier import send_notification, MisconfiguredNotificationError
+from ascii_telnet.prompt_resolver import Dialogue
 
 try:
     # noinspection PyCompatibility
@@ -77,68 +78,60 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     movie = None
     dialogue_options = None
-    repo_url = None
 
     @classmethod
     def set_up_handler_global_state(
         cls,
         movie: Movie,
-        dialogue_options: Optional[Dict[str, str]],
-        repo_url: Optional[str]
+        dialogue_options: Dialogue,
     ):
         cls.movie = movie
-        cls.dialogue_options = dialogue_options or {}
-        cls.repo_url = repo_url
+        cls.dialogue_options = dialogue_options
 
     def handle(self):
-        visitor = self.prompt_for_name()
         try:
             self.verify_is_human()
         except NotAHumanError:
-            print(f"Nonhuman visited: {visitor}")
+            print(f"Nonhuman visited")
             return
-
-        try:
-            send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
-        except MisconfiguredNotificationError:
-            pass
-        self.run_dialogue(visitor)
+        if self.dialogue_options:
+            results = self.dialogue_options.run('visitor', self.prompt, self.output)
+            visitor = results['input']
+            try:
+                send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
+            except MisconfiguredNotificationError:
+                pass
         self.prepare_for_screen_size()
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
         self.player.play()
-        self.prompt_for_parting_message(visitor)
-        if self.repo_url:
-            self.output(
-                "\nInterested in how I did this? See my source code at: \n"
-                f"{self.repo_url}"
-            )
+        self.wfile.write(b'\r\n')
+        if self.dialogue_options:
+            self.prompt_for_parting_message(visitor)
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
         self.output(
-            f"{self.movie.screen_width * '-'}\n"
-            "For the best experience, you might want to make your window wider\n"
-            "I'll give you a few moments to do that now.\n"
-            "The following should be a single line\n"
-            f"{self.movie.screen_width * '-'}\n"
-            f"Also, Windows telnet is the WORST client. If you're on Windows, try using PuTTY or WSL."
+            self.movie.create_viewing_area_box()
         )
         time.sleep(15)
         self.output("Here we go!")
         time.sleep(2)
 
     def output(self, output_text, return_at_end=True):
-        if return_at_end and not output_text.endswith('\n'):
-            output_text = f'{output_text}\n'
-        # Silly Windows
+        endswith_space = output_text.endswith(' ')
         with_carriage_returns = output_text.replace('\n', '\r\n')
-        encoded = with_carriage_returns.encode('ISO-8859-1')
+        wrapped = '\r\n'.join(textwrap.wrap(with_carriage_returns, self.movie.screen_width, replace_whitespace=False))
+        if endswith_space:
+            wrapped += ' '
+        if return_at_end and not wrapped.endswith('\r\n'):
+            wrapped += '\r\n'
+        encoded = wrapped.encode('ISO-8859-1')
         self.wfile.write(encoded)
 
-    def prompt(self, prompt_text, max_bytes_in=50, pad_with_trailing_space=True) -> str:
+    def prompt(self, prompt_text, max_bytes_in=300, pad_with_trailing_space=True) -> str:
         if pad_with_trailing_space:
             prompt_text += ' '
         self.rfile.flush()
@@ -179,18 +172,6 @@ class TelnetRequestHandler(StreamRequestHandler):
                 print("Client Disconnected.")
                 self.player.stop()
 
-    def run_dialogue(self, visitor):
-        for option in self.dialogue_options:
-            if option.lower() in visitor.lower():
-                self.output(f"SUPER SECRET MESSAGE JUST FOR {option.upper()}:")
-                message = self.dialogue_options[option]
-                wrapped = textwrap.wrap(message, self.movie.screen_width)
-                with_line_breaks = '\n'.join(wrapped)
-                self.output(with_line_breaks)
-                self.output("...".center(self.movie.screen_width))
-                time.sleep(15)
-                break
-
     def verify_is_human(self):
         response = self.prompt("Are you a human?", 20)
         for answer in ['yes', 'yea', 'si', 'yep']:
@@ -201,8 +182,8 @@ class TelnetRequestHandler(StreamRequestHandler):
         raise NotAHumanError()
 
     def prompt_for_parting_message(self, visitor_name: str):
-        self.output("\nLooks like you made it all the way to the end.")
-        parting_message = self.prompt("Go ahead and leave the Ghost of Falkenstein a parting message.\n>>", 300)
+        result = self.dialogue_options.run('parting_message', self.prompt, self.output)
+        parting_message = result['input']
         notification = f"Parting message received from {visitor_name}: {parting_message}"
         try:
             send_notification(notification)
