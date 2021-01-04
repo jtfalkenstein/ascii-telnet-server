@@ -40,8 +40,8 @@ class Prompt(YAMLObject):
         return {key: (input_text, response)}
 
     def _find_response(self, response):
-        if isinstance(self.response, str):
-            return response
+        if isinstance(self.response, (str, Output)):
+            return self.response
         if isinstance(self.response, dict):
             for key in self.response:
                 if re.search(key, response, re.IGNORECASE):
