@@ -44,7 +44,7 @@ class Prompt(YAMLObject):
         return {key: (input_text, response)}
 
     def _find_response(self, response):
-        if isinstance(self.response, (str, Output)):
+        if isinstance(self.response, (str, Output, Prompt)):
             return self.response
         if isinstance(self.response, dict):
             for key in self.response:

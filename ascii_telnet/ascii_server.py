@@ -110,14 +110,17 @@ class TelnetRequestHandler(StreamRequestHandler):
             self.prompt_for_parting_message(visitor)
 
     def run_visitor_dialogue(self):
-        results = self.dialogue_options.run('visitor', self.prompt, self.output)
-        visitor = results['input']
-        result_text = json.dumps(results, indent='    ')
-        notification = f"Server has been visited by {visitor} at {self.client_address[0]}!: {result_text}"
-        self.notify(notification)
-        if results['resolved']:
-            self.prompt("Press enter to continue...")
-        return visitor
+        while True:
+            results = self.dialogue_options.run('visitor', self.prompt, self.output)
+            visitor = results['input']
+            result_text = json.dumps(results, indent='    ')
+            notification = f"Server has been visited by {visitor} at {self.client_address[0]}!: {result_text}"
+            self.notify(notification)
+            if results['resolved']:
+                response = self.prompt("Press enter to continue or enter 'retry' to answer differently...")
+                if 'retry' in response:
+                    continue
+            return visitor
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
