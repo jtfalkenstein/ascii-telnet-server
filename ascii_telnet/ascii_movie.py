@@ -414,7 +414,7 @@ class Movie(object):
         lines_to_add = self.screen_height - 2
         inner_text_width = self.screen_width - 2
         empty_inner_line = f"|{' ' * inner_text_width}|"
-        viewing_area_text = "In order to ensure proper viewing, Resize your terminal so it can fit this entire box."
+        viewing_area_text = "In order to ensure proper viewing, resize your terminal so it can fit this entire box."
         wrapped = textwrap.wrap(viewing_area_text, inner_text_width)
         centered = [
             f"|{line.center(inner_text_width)}|"
