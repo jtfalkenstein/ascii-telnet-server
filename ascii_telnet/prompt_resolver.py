@@ -37,7 +37,7 @@ class Prompt(YAMLObject):
 
     def run(self, prompt_func: Callable[[str], str]) -> Dict:
         key = self.prompt
-        input_text = prompt_func('\n' + self.prompt)
+        input_text = prompt_func('\n' + self.prompt + '\n>> ')
         response = self._find_response(input_text)
         if isinstance(response, Repeat):
             return self.run(prompt_func)
