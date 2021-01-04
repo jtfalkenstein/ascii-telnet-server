@@ -25,10 +25,12 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import errno
+import json
 import socket
 import textwrap
 import time
-from typing import Optional, Dict
+
+import yaml
 
 from ascii_telnet.ascii_movie import Movie
 from ascii_telnet.ascii_player import VT100Player
@@ -95,30 +97,37 @@ class TelnetRequestHandler(StreamRequestHandler):
             print(f"Nonhuman visited")
             return
         if self.dialogue_options:
-            results = self.dialogue_options.run('visitor', self.prompt, self.output)
-            visitor = results['input']
-            try:
-                send_notification(f"Server has been visited by {visitor} at {self.client_address[0]}!")
-            except MisconfiguredNotificationError:
-                pass
+            visitor = self.run_visitor_dialogue()
+
         self.prepare_for_screen_size()
         self.player = VT100Player(self.movie)
         self.player.draw_frame = self.draw_frame
+        self.output("Here we go!")
+        time.sleep(2)
         self.player.play()
         self.wfile.write(b'\r\n')
         if self.dialogue_options:
             self.prompt_for_parting_message(visitor)
 
+    def run_visitor_dialogue(self):
+        results = self.dialogue_options.run('visitor', self.prompt, self.output)
+        visitor = results['input']
+        result_text = json.dumps(results, indent='    ')
+        notification = f"Server has been visited by {visitor} at {self.client_address[0]}!: {result_text}"
+        self.notify(notification)
+        if results['resolved']:
+            self.prompt("Press enter to continue...")
+        return visitor
+
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
-        self.output(
-            self.movie.create_viewing_area_box()
-        )
-        time.sleep(15)
-        self.output("Here we go!")
+        self.output("\nUse the following to make sure your terminal size is correct.")
         time.sleep(2)
+        screen_box = self.movie.create_viewing_area_box()
+        self.output(screen_box)
+        time.sleep(15)
 
     def output(self, output_text, return_at_end=True):
         endswith_space = output_text.endswith(' ')
@@ -185,7 +194,10 @@ class TelnetRequestHandler(StreamRequestHandler):
         result = self.dialogue_options.run('parting_message', self.prompt, self.output)
         parting_message = result['input']
         notification = f"Parting message received from {visitor_name}: {parting_message}"
+        self.notify(notification)
+
+    def notify(self, notification_text: str):
         try:
-            send_notification(notification)
+            send_notification(notification_text)
         except MisconfiguredNotificationError:
-            print(notification)
+            print(notification_text)
