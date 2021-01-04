@@ -1,11 +1,7 @@
 import re
-import time
 from typing import Dict, Callable, Union
 
 from yaml import YAMLObject
-
-AVERAGE_READING_WORDS_PER_MINUTE = 250
-AVERAGE_READING_WORDS_PER_SECOND = AVERAGE_READING_WORDS_PER_MINUTE / 60
 
 
 class Output(YAMLObject):
@@ -15,28 +11,36 @@ class Output(YAMLObject):
         self.output_text = output_text
 
     def run(self, output_func: Callable[[str], None]):
-        output_func(self.output_text)
-        words_in_output_text = len(self.output_text.split())
-        seconds_to_sleep = words_in_output_text / AVERAGE_READING_WORDS_PER_SECOND + 2
-        time.sleep(seconds_to_sleep)
+        output_func('\n' + self.output_text)
 
     @classmethod
     def from_yaml(cls, loader, node):
         return Output(node.value)
 
 
+class Repeat(YAMLObject):
+    yaml_tag = '!Repeat'
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        return cls()
+
+
 class Prompt(YAMLObject):
     yaml_tag = '!Prompt'
 
-    def __init__(self, prompt: str, response: Union[dict, str] = None):
+    def __init__(self, prompt: str, response: Union[dict, str, Output], default: Union[str, Output] = None):
         super().__init__()
         self.prompt = prompt
         self.response = response
+        self.default = default
 
     def run(self, prompt_func: Callable[[str], str]) -> Dict:
         key = self.prompt
-        input_text = prompt_func(self.prompt)
+        input_text = prompt_func('\n' + self.prompt)
         response = self._find_response(input_text)
+        if isinstance(response, Repeat):
+            return self.run(prompt_func)
         return {key: (input_text, response)}
 
     def _find_response(self, response):
@@ -46,6 +50,10 @@ class Prompt(YAMLObject):
             for key in self.response:
                 if re.search(key, response, re.IGNORECASE):
                     return self.response[key]
+        return self.default
+
+    def __setstate__(self, state):
+        self.__init__(**state)
 
 
 class Dialogue(YAMLObject):
@@ -71,7 +79,9 @@ class Dialogue(YAMLObject):
             return dict_to_return
         elif isinstance(value, Output):
             value.run(output_func)
-            return None
+            return {
+                "output": value.output_text
+            }
         else:
             return value
 
