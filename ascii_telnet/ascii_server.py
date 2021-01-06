@@ -29,6 +29,7 @@ import json
 import socket
 import textwrap
 import time
+from itertools import chain
 
 import yaml
 
@@ -92,22 +93,25 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def handle(self):
         try:
-            self.verify_is_human()
-        except NotAHumanError:
-            print(f"Nonhuman visited")
-            return
-        if self.dialogue_options:
-            visitor = self.run_visitor_dialogue()
+            try:
+                self.verify_is_human()
+            except NotAHumanError:
+                print(f"Nonhuman visited")
+                return
+            if self.dialogue_options:
+                visitor = self.run_visitor_dialogue()
 
-        self.prepare_for_screen_size()
-        self.player = VT100Player(self.movie)
-        self.player.draw_frame = self.draw_frame
-        self.output("Here we go!")
-        time.sleep(2)
-        self.player.play()
-        self.wfile.write(b'\r\n')
-        if self.dialogue_options:
-            self.prompt_for_parting_message(visitor)
+            self.prepare_for_screen_size()
+            self.player = VT100Player(self.movie)
+            self.player.draw_frame = self.draw_frame
+            self.output("Here we go!")
+            time.sleep(2)
+            self.player.play()
+            self.wfile.write(b'\r\n')
+            if self.dialogue_options:
+                self.prompt_for_parting_message(visitor)
+        except BrokenPipeError:
+            pass
 
     def run_visitor_dialogue(self):
         while True:
@@ -134,14 +138,25 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def output(self, output_text, return_at_end=True):
         endswith_space = output_text.endswith(' ')
-        with_carriage_returns = output_text.replace('\n', '\r\n')
-        wrapped = '\r\n'.join(textwrap.wrap(with_carriage_returns, self.movie.screen_width, replace_whitespace=False))
+        lines = output_text.splitlines()
+        wrapped_lines = chain.from_iterable(
+            textwrap.wrap(line, self.movie.screen_width, replace_whitespace=False)
+            if line
+            else ['']
+            for line in lines
+        )
+        wrapped = '\r\n'.join(wrapped_lines)
         if endswith_space:
             wrapped += ' '
         if return_at_end and not wrapped.endswith('\r\n'):
             wrapped += '\r\n'
-        encoded = wrapped.encode('ISO-8859-1')
-        self.wfile.write(encoded)
+
+        line_count = wrapped.count('\r\n')
+        if line_count > self.movie.screen_height:
+            self._output_long_text(wrapped)
+        else:
+            encoded = wrapped.encode('ISO-8859-1')
+            self.wfile.write(encoded)
 
     def prompt(self, prompt_text, max_bytes_in=300, pad_with_trailing_space=True) -> str:
         if pad_with_trailing_space:
@@ -204,3 +219,29 @@ class TelnetRequestHandler(StreamRequestHandler):
             send_notification(notification_text)
         except MisconfiguredNotificationError:
             print(notification_text)
+
+    def _output_long_text(self, long_text):
+        lines = long_text.split('\r\n')
+        window_size = self.movie.screen_height - 4
+        window = lines[:window_size]
+        start_index = len(window) - 1
+        end_index = len(lines) - 1
+        current_index = start_index
+
+        def scroll_down():
+            nonlocal current_index
+            window.pop(0)
+            current_index += 1
+            window.append(lines[current_index])
+
+        while True:
+            to_print = '\r\n'.join(window)
+            encoded = to_print.encode('ISO-8859-1')
+            # Clear the line, return cursor to first column and move up one line
+            self.wfile.write(f'{chr(27)}[2J\r{chr(27)}D'.encode())
+            self.wfile.write(encoded)
+            if current_index != end_index:
+                self.prompt("\nPress <Enter> to scroll...")
+                scroll_down()
+            else:
+                break
