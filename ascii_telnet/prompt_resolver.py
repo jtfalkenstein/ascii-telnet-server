@@ -86,6 +86,26 @@ class Dialogue(YAMLObject):
             return value
 
     @classmethod
+    def make_dialogue_readable(cls, dialogue_results: dict):
+        results = []
+
+        def add_block_to_results(block: dict):
+            if 'prompt' in block:
+                results.append({
+                    'prompt': block['prompt'],
+                    'input': block['input']
+                })
+                add_block_to_results(block['resolved'])
+            elif 'output' in block:
+                results.append(block)
+            else:
+                results.append({'value': block})
+
+        add_block_to_results(dialogue_results)
+
+        return results
+
+    @classmethod
     def from_yaml(cls, loader, node):
         loaded = super(Dialogue, cls).from_yaml(loader, node)
         return loaded

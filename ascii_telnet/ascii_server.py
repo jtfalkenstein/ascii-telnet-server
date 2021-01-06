@@ -106,6 +106,8 @@ class TelnetRequestHandler(StreamRequestHandler):
                 return
             if self.dialogue_options:
                 visitor = self.run_visitor_dialogue()
+                if 'adventurer' in visitor.lower():
+                    visitor = self.run_adventure()
 
             self.prepare_for_screen_size()
             self.player = VT100Player(self.movie)
@@ -120,20 +122,28 @@ class TelnetRequestHandler(StreamRequestHandler):
             pass
 
     def run_visitor_dialogue(self):
+        results = self.dialogue_options.run('visitor', self.prompt, self.output)
+        visitor = results['input']
+        notification = f"Server has been visited by {visitor} at {self.client_address[0]}!"
+        self.notify(notification)
+        return visitor
+
+    def run_adventure(self):
         while True:
-            results = self.dialogue_options.run('visitor', self.prompt, self.output)
-            visitor = results['input']
-            result_text = json.dumps(results, indent='\t')
-            notification = f"Server has been visited by {visitor} at {self.client_address[0]}!: \n{result_text}"
+            results = self.dialogue_options.run('adventure', self.prompt, self.output)
+            adventurer_name = results['input']
+            readable_results = Dialogue.make_dialogue_readable(results)
+            result_text = json.dumps(readable_results, indent='\t')
+            notification = f'An adventurer has come! His name is {adventurer_name}.\nHis path: {result_text}'
             self.notify(notification)
-            if results['resolved']:
-                horizontal_bar = '-' * self.movie.screen_width
-                response = self.prompt(
-                    f"\n{horizontal_bar}\nPress enter to continue or enter 'retry' to answer differently..."
-                )
-                if 'retry' in response:
-                    continue
-            return visitor
+            horizontal_bar = '-' * self.movie.screen_width
+            response = self.prompt(
+                f"\n{horizontal_bar}\nPress enter to continue or enter 'retry' to answer differently. You might find "
+                f"you end up with a VERY different adventure..."
+            )
+            if 'retry' in response:
+                continue
+            return adventurer_name
 
     def prompt_for_name(self) -> str:
         return self.prompt("Who dis? (Real name is best)")
