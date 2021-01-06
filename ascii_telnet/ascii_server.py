@@ -226,7 +226,8 @@ class TelnetRequestHandler(StreamRequestHandler):
 
     def notify(self, notification_text: str):
         try:
-            send_notification(notification_text)
+            with_tabs_replaced = notification_text.replace('\t', '....')
+            send_notification(with_tabs_replaced)
         except MisconfiguredNotificationError:
             print(notification_text)
 
