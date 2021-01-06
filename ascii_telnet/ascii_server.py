@@ -73,6 +73,7 @@ ESC = chr(27)
 CLEAR_SCREEN = ESC + '[2J'
 CLEAR_LINE = ESC + '[2K'
 LINE_UP = ESC + 'D'
+MOVE_TO_TOP_LEFT = ESC + "[1;1H"
 
 
 class NotAHumanError(Exception): pass
@@ -126,7 +127,10 @@ class TelnetRequestHandler(StreamRequestHandler):
             notification = f"Server has been visited by {visitor} at {self.client_address[0]}!: \n{result_text}"
             self.notify(notification)
             if results['resolved']:
-                response = self.prompt("Press enter to continue or enter 'retry' to answer differently...")
+                horizontal_bar = '-' * self.movie.screen_width
+                response = self.prompt(
+                    f"\n{horizontal_bar}\nPress enter to continue or enter 'retry' to answer differently..."
+                )
                 if 'retry' in response:
                     continue
             return visitor
@@ -137,7 +141,7 @@ class TelnetRequestHandler(StreamRequestHandler):
     def prepare_for_screen_size(self):
         screen_box = self.movie.create_viewing_area_box()
         for second in reversed(range(1, 16)):
-            self.output(f"{CLEAR_SCREEN}\r")
+            self.output(f"{CLEAR_SCREEN}{MOVE_TO_TOP_LEFT}\r")
             self.output(screen_box)
             self.output(f"Continuing in {second} seconds...", False)
             time.sleep(1)
@@ -244,10 +248,17 @@ class TelnetRequestHandler(StreamRequestHandler):
             to_print = '\r\n'.join(window)
             encoded = to_print.encode('ISO-8859-1')
             # Clear the line, return cursor to first column and move up one line
-            self.wfile.write(f'{chr(27)}[2J\r{chr(27)}D'.encode())
+            self.wfile.write(f'{CLEAR_SCREEN}{LINE_UP}'.encode())
             self.wfile.write(encoded)
-            if current_index != end_index:
-                self.prompt("\nPress <Enter> to scroll...")
-                scroll_down()
+            if current_index < end_index:
+                response = self.prompt(
+                    f"\n{'-' * self.movie.screen_width}\n\n"
+                    f"Press <Enter> to scroll, or enter 'bottom' to scroll to the bottom..."
+                )
+                if 'bottom' in response:
+                    current_index = end_index
+                    window = lines[end_index - window_size:]
+                else:
+                    scroll_down()
             else:
                 break
