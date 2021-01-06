@@ -104,16 +104,14 @@ class TelnetRequestHandler(StreamRequestHandler):
             except NotAHumanError:
                 print(f"Nonhuman visited")
                 return
+            self.prepare_for_screen_size()
             if self.dialogue_options:
                 visitor = self.run_visitor_dialogue()
                 if 'adventurer' in visitor.lower():
                     visitor = self.run_adventure()
 
-            self.prepare_for_screen_size()
             self.player = VT100Player(self.movie)
             self.player.draw_frame = self.draw_frame
-            self.output("Here we go!")
-            time.sleep(2)
             self.player.play()
             self.wfile.write(b'\r\n')
             if self.dialogue_options:
@@ -149,6 +147,8 @@ class TelnetRequestHandler(StreamRequestHandler):
         return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
+        self.output("A box is about to be shown to help you prepare your terminal window size.")
+        time.sleep(5)
         screen_box = self.movie.create_viewing_area_box()
         for second in reversed(range(1, 16)):
             self.output(f"{CLEAR_SCREEN}{MOVE_TO_TOP_LEFT}\r")
