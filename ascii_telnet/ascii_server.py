@@ -272,4 +272,5 @@ class TelnetRequestHandler(StreamRequestHandler):
                 else:
                     scroll_down()
             else:
+                time.sleep(5)
                 break
