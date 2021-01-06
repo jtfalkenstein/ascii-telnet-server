@@ -69,6 +69,11 @@ GA = 249  # Go Ahead
 SB = 250  # Subnegotiation Begin
 NAWS = 31
 
+ESC = chr(27)
+CLEAR_SCREEN = ESC + '[2J'
+CLEAR_LINE = ESC + '[2K'
+LINE_UP = ESC + 'D'
+
 
 class NotAHumanError(Exception): pass
 
@@ -130,11 +135,12 @@ class TelnetRequestHandler(StreamRequestHandler):
         return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
-        self.output("\nUse the following to make sure your terminal size is correct.")
-        time.sleep(2)
         screen_box = self.movie.create_viewing_area_box()
-        self.output(screen_box)
-        time.sleep(15)
+        for second in reversed(range(1, 16)):
+            self.output(f"{CLEAR_SCREEN}\r")
+            self.output(screen_box)
+            self.output(f"Continuing in {second} seconds...", False)
+            time.sleep(1)
 
     def output(self, output_text, return_at_end=True):
         endswith_space = output_text.endswith(' ')
