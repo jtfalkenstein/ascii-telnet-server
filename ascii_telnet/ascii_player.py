@@ -100,7 +100,7 @@ class VT100Player(object):
                 # When draw speed exceeds total frame seconds, we catch up, if there's catching up to do
                 drift -= min(frame.frame_seconds, drift)
 
-            if dropped_seconds > 5 and not destyling_applied:
+            if dropped_seconds > 2 and not destyling_applied:
                 movie.remove_styling()
                 print("Destyling applied to speed transmission")
                 destyling_applied = True
