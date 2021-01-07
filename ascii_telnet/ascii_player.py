@@ -34,7 +34,7 @@ from io import BytesIO
 from ascii_telnet.ascii_movie import TimeBar, Movie
 
 
-DESTYLING_THRESHOLD_SECONDS = 2
+DESTYLING_THRESHOLD_SECONDS = 4
 
 
 class VT100Player(object):
@@ -102,8 +102,9 @@ class VT100Player(object):
             elif sleep_time > 0:
                 # When draw speed exceeds total frame seconds, we catch up, if there's catching up to do
                 drift -= min(frame.frame_seconds, drift)
-
-            if dropped_seconds > DESTYLING_THRESHOLD_SECONDS and not destyling_applied:
+            if drift == 0:
+                dropped_seconds = 0
+            elif dropped_seconds > DESTYLING_THRESHOLD_SECONDS and not destyling_applied:
                 movie.remove_styling()
                 print("Destyling applied to speed transmission")
                 destyling_applied = True
