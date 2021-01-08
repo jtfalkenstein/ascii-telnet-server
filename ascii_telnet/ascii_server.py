@@ -124,6 +124,8 @@ class TelnetRequestHandler(StreamRequestHandler):
         visitor = results['input']
         notification = f"Server has been visited by {visitor} at {self.client_address[0]}!"
         self.notify(notification)
+        if results['resolved']:
+            self.prompt('Press enter to continue...')
         return visitor
 
     def run_adventure(self):
@@ -142,9 +144,6 @@ class TelnetRequestHandler(StreamRequestHandler):
             if 'retry' in response:
                 continue
             return adventurer_name
-
-    def prompt_for_name(self) -> str:
-        return self.prompt("Who dis? (Real name is best)")
 
     def prepare_for_screen_size(self):
         self.output("A box is about to be shown to help you prepare your terminal window size.")
